@@ -1,0 +1,40 @@
+.theme-dark, .theme-light {
+    --background-primary:          #10121b;
+    --background-primary-alt:      #10121b;
+    --background-secondary:        #10121b;
+    --background-secondary-alt:    #8b899a;
+    --background-modifier-border:  transparent;
+    --titlebar-background:         #10121b;
+    --titlebar-background-focused: #10121b;
+    --text-normal:       #c7c4dd;
+    --text-muted:        #c7c4dd;
+    --text-faint:        #8b899a;
+    --text-accent:       #6E85BA;
+    --text-accent-hover: #608EC4;
+    --interactive-accent:       #6E85BA;
+    --interactive-accent-hover: #608EC4;
+    --text-selection:           #6E85BA40;
+    --h1-color: #4F7AC1;
+    --h2-color: #3F81BD;
+    --h3-color: #4D84BD;
+    --h4-color: #6E85BA;
+    --h5-color: #608EC4;
+    --h6-color: #DFA7BF;
+    --code-background: #4F7AC120;
+    --code-normal:     #c7c4dd;
+    --code-keyword:    #608EC4;
+    --code-function:   #6E85BA;
+    --code-string:     #3F81BD;
+    --code-number:     #4F7AC1;
+    --code-comment:    #8b899a;
+    --code-operator:   #c7c4dd;
+    --pywal-bold:   #4D84BD;
+    --pywal-italic: #DFA7BF;
+}
+
+.token.keyword { color: #608EC4 !important; }
+.token.function { color: #6E85BA !important; }
+.token.string { color: #3F81BD !important; }
+.token.number, .token.boolean, .token.constant { color: #4F7AC1 !important; }
+.token.comment { color: #8b899a !important; }
+.token.operator, .token.punctuation { color: #c7c4dd !important; }

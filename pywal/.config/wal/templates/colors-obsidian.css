@@ -1,0 +1,40 @@
+.theme-dark, .theme-light {{
+    --background-primary:          {background};
+    --background-primary-alt:      {color0};
+    --background-secondary:        {color0};
+    --background-secondary-alt:    {color8};
+    --background-modifier-border:  transparent;
+    --titlebar-background:         {color0};
+    --titlebar-background-focused: {color0};
+    --text-normal:       {foreground};
+    --text-muted:        {color7};
+    --text-faint:        {color8};
+    --text-accent:       {color4};
+    --text-accent-hover: {color5};
+    --interactive-accent:       {color4};
+    --interactive-accent-hover: {color5};
+    --text-selection:           {color4}40;
+    --h1-color: {color1};
+    --h2-color: {color2};
+    --h3-color: {color3};
+    --h4-color: {color4};
+    --h5-color: {color5};
+    --h6-color: {color6};
+    --code-background: {color1}20;
+    --code-normal:     {foreground};
+    --code-keyword:    {color5};
+    --code-function:   {color4};
+    --code-string:     {color2};
+    --code-number:     {color1};
+    --code-comment:    {color8};
+    --code-operator:   {color7};
+    --pywal-bold:   {color3};
+    --pywal-italic: {color6};
+}}
+
+.token.keyword {{ color: {color5} !important; }}
+.token.function {{ color: {color4} !important; }}
+.token.string {{ color: {color2} !important; }}
+.token.number, .token.boolean, .token.constant {{ color: {color1} !important; }}
+.token.comment {{ color: {color8} !important; }}
+.token.operator, .token.punctuation {{ color: {color7} !important; }}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/main/doc/json_schema.json",
+"logo": {
+    "source": "~/dotfiles/logo/img/cover.png",
+    "width": 20, 
+    "color": { "1": "white" },
+    "padding": { "top": 2, "left": 4, "right": 5 }
+  },
+  "display": {
+    "separator": " ",
+    "key": { "width": 8 }
+  },
+  "modules": [
+    "break",
+    { "type": "title",  "key": " ╭─ ", "keyColor": "blue",    "format": "{1}@{2}" },
+    { "type": "os",     "key": " ├─ 󰣇", "keyColor": "blue",    "format": "{2}" },
+    { "type": "kernel", "key": " ├─ ", "keyColor": "blue",    "format": "{2}" },
+    { "type": "wm",     "key": " ├─ ", "keyColor": "blue",    "format": "{1}" },
+    { "type": "shell",  "key": " ╰─ ", "keyColor": "blue",    "format": "{1}" },
+    "break",
+    { "type": "cpu",    "key": " ╭─ 󰻠", "keyColor": "magenta", "format": "{1}" },
+    { "type": "gpu",    "key": " ├─ 󰢮", "keyColor": "magenta", "format": "{1} {2}" },
+    { "type": "memory", "key": " ╰─ 󰍛", "keyColor": "magenta", "format": "{1} / {2}" },
+    "break",
+    { "type": "colors", "symbol": "circle", "block": { "range": [1, 6] } }
+  ]
+}

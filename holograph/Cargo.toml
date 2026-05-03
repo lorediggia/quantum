@@ -1,0 +1,11 @@
+[package]
+name = "holograph"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.28"
+image = "0.25"
+ratatui = { version = "0.30.0", features = ["crossterm"] }
+ratatui-image = "10.0.6"
+regex = "1.10"
