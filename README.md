@@ -11,6 +11,20 @@
 </p>
 </div>
 
+<table align="center">
+  <tr>
+    <td align="center"><img src="assets/disco_elysium.webp" width="400"><br><b>Disco Elysium</b></td>
+    <td align="center"><img src="assets/hollow_knight.webp" width="400"><br><b>Hollow Knight</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/miku.webp" width="400"><br><b>Miku</b></td>
+    <td align="center"><img src="assets/outer_wilds.webp" width="400"><br><b>Outer Wilds</b></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="assets/wallpicker.webp" width="600"><br><b>Wallpicker</b></td>
+  </tr>
+</table>
+
 ## ✦ Features
 
 ➢ **Dynamic Theming** : powered by `Pywal`. Select a wallpaper and colors instantly bleed into Hyprland, Kitty, Rofi, and Obsidian. 
