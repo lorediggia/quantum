@@ -8,6 +8,9 @@
   <img src="https://img.shields.io/badge/Hyprland-00a8cc?style=for-the-badge&logo=hyprland&logoColor=white" alt="Hyprland" />
   <img src="https://img.shields.io/badge/Quickshell-ff69b4?style=for-the-badge" alt="Quickshell" />
   <img src="https://img.shields.io/badge/Rust-ea7335?style=for-the-badge&logo=rust&logoColor=white" alt="Rust" />
+
+  [![Support me on Ko-fi](https://img.shields.io/badge/Support%20me%20on%20Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/TUO_USERNAME)
+
 </p>
 </div>
 
