@@ -150,7 +150,7 @@ PKGS_REPO=(stow base-devel git)
 PKGS_AUR=()
 
 (( OPT_HYPR )) && PKGS_REPO+=(hyprland hyprpicker polkit-gnome xdg-desktop-portal-hyprland xdg-desktop-portal-gtk grim slurp wl-clipboard networkmanager power-profiles-daemon pacman-contrib qt6-base qt6-declarative qt6-svg qt6-wayland qt6-5compat ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols ttf-nerd-fonts-symbols-mono noto-fonts noto-fonts-emoji) && PKGS_AUR+=(hyprshot)
-(( OPT_TERM )) && PKGS_REPO+=(kitty starship)
+(( OPT_TERM )) && PKGS_REPO+=(kitty starship fish)
 (( OPT_ROFI )) && PKGS_REPO+=(rofi-wayland)
 (( OPT_QUICKSHELL )) && PKGS_REPO+=(quickshell)
 (( OPT_THEME )) && PKGS_REPO+=(python-pywal python awww)
@@ -241,7 +241,7 @@ done
 
 STOW_PKGS=(scripts)
 (( OPT_HYPR )) && STOW_PKGS+=(hyprland)
-(( OPT_TERM )) && STOW_PKGS+=(kitty starship)
+(( OPT_TERM )) && STOW_PKGS+=(kitty starship fish)
 (( OPT_ROFI )) && STOW_PKGS+=(rofi)
 (( OPT_QUICKSHELL )) && STOW_PKGS+=(quickshell)
 (( OPT_THEME )) && STOW_PKGS+=(pywal)
@@ -270,6 +270,12 @@ fi
 if (( OPT_CURSOR )); then
     mkdir -p "$HOME/.icons/default"
     echo -e "[Icon Theme]\nInherits=Bibata-Modern-Classic" > "$HOME/.icons/default/index.theme"
+fi
+
+if (( OPT_TERM )); then
+    step "Setting Fish as default shell"
+    sudo chsh -s /usr/bin/fish "$USER" >>"$LOG_FILE" 2>&1 || true
+    ok "Default shell updated."
 fi
 
 echo -e "\n${BOLD}${C_OK} Installation complete, enjoy ;)${C_DEF}\n"
