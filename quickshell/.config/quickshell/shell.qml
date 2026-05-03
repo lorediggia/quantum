@@ -53,7 +53,8 @@ ShellRoot {
                 baseRot: it.baseRot, stickerZ: it.stickerZ, stickerScale: it.stickerScale
             })
         }
-        saveProc.json = JSON.stringify(data)
+        const safeJson = JSON.stringify(data).replace(/'/g, "'\\''")
+        saveProc.command = ["sh", "-c", "echo '" + safeJson + "' > ~/.cache/sidebar_stickers.json"]
         saveProc.running = true
     }
 
@@ -99,18 +100,14 @@ ShellRoot {
 
     // ── sticker persistence ──
 
-    Timer { id: saveDebounce; interval: 600; onTriggered: root.saveStickers() }
+    Timer { id: saveDebounce; interval: 150; onTriggered: root.saveStickers() }
 
     Process {
         id: saveProc
-        property string json: ""
-        command: ["sh", "-c", "cat > ~/.cache/sidebar_stickers.json"]
-        stdinEnabled: true
-        onStarted: { write(json); closeStdin() }
     }
     Process {
         id: loadProc
-        command: ["sh", "-c", "$HOME/.local/bin/sticker-load.sh"]
+        command: ["sh", "-c", "cat ~/.cache/sidebar_stickers.json 2>/dev/null || echo ''"]
         property string buffer: ""
         stdout: SplitParser { onRead: (data) => loadProc.buffer += data }
         onExited: (code) => {
