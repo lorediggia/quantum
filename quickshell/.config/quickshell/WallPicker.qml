@@ -14,7 +14,10 @@ PanelWindow {
 
     visible: false
 
-    function show()   { visible = true; if (wallModel.count === 0) loadProc.running = true }
+    function show() {
+        visible = true
+        loadProc.running = true
+    }
     function hide()   { visible = false }
     function toggle() { visible ? hide() : show() }
 
@@ -28,10 +31,32 @@ PanelWindow {
 
     ListModel { id: wallModel }
 
-    Process {
+        Process {
         id: loadProc
         command: ["sh", "-c", "find ~/Pictures/Wallpaper* -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) | sort"]
-        stdout: SplitParser { onRead: (data) => { if (data.trim() !== "") wallModel.append({ path: data.trim() }) } }
+
+        property var collected: []
+
+        stdout: SplitParser {
+            onRead: (data) => {
+                const t = data.trim()
+                if (t !== "") loadProc.collected.push(t)
+            }
+        }
+
+        onRunningChanged: {
+            if (running) {
+                collected = []
+                return
+            }
+            const current = []
+            for (let i = 0; i < wallModel.count; i++) current.push(wallModel.get(i).path)
+
+            if (JSON.stringify(current) === JSON.stringify(collected)) return
+
+            wallModel.clear()
+            for (const p of collected) wallModel.append({ path: p })
+        }
     }
 
     Process { id: applyProc }
@@ -80,7 +105,8 @@ PanelWindow {
                             source: "file://" + path
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
-                            sourceSize: Qt.size(440, 260)
+                            cache: true
+                            sourceSize: Qt.size(440, 260)  
                             visible: false
                         }
 
