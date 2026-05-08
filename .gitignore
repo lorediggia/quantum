@@ -1,13 +1,9 @@
 # ── quantum .gitignore ──
 local/
-holograph/target/
 **/target/
 logo/holograph/*/
-scripts/.local/bin/local/
-scripts/.local/bin/catree
 *.log
 .cache/
-.DS_Store
 .vscode/
 .idea/
-logo/img/
+logo/img
