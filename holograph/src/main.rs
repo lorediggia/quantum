@@ -28,7 +28,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match key.code {
                     KeyCode::Char('q') | KeyCode::Esc => break,
                     KeyCode::Enter => app.do_apply_theme(),
-                    KeyCode::Char('c') | KeyCode::Char('C') => app.do_set_cover(),
                     KeyCode::Char('h') | KeyCode::Char('H') => app.toggle_ui(),
                     KeyCode::Up => app.navigate_theme(false),
                     KeyCode::Down => app.navigate_theme(true),

@@ -8,4 +8,3 @@ crossterm = "0.28"
 image = "0.25"
 ratatui = { version = "0.30.0", features = ["crossterm"] }
 ratatui-image = "10.0.6"
-regex = "1.10"

@@ -1,6 +1,6 @@
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
 use std::fs;
-use crate::theme::{AppPaths, ThemeFolder, load_themes, apply_theme, set_cover};
+use crate::theme::{AppPaths, ThemeFolder, load_themes, apply_theme};
 
 pub struct App {
     pub paths: AppPaths,
@@ -35,7 +35,7 @@ impl App {
     }
 
     pub fn default_message() -> String {
-        " ↑/↓ Themes • ←/→ Images • C Set Cover • Enter Apply • Q Exit ".to_string()
+        " ↑/↓ Themes • ←/→ Images • Enter Apply • Q Exit ".to_string()
     }
 
     pub fn load_image(&mut self) {
@@ -86,16 +86,6 @@ impl App {
         }
     }
 
-    pub fn do_set_cover(&mut self) {
-        match set_cover(&mut self.themes, self.selected_theme, self.selected_image, &self.paths.holograph_dir) {
-            Ok(msg) => {
-                self.selected_image = 0;
-                self.load_image();
-                self.message = msg;
-            },
-            Err(msg) => self.message = msg,
-        }
-    }
     pub fn do_apply_theme(&mut self) {
         match apply_theme(&self.themes, self.selected_theme, &self.paths) {
             Ok(msg) => self.message = msg,
