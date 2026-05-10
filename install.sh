@@ -228,6 +228,11 @@ if [[ ! -f "$DOTFILES/local/hypr-local.conf" ]]; then
     echo "monitor = ,preferred,auto,1" > "$DOTFILES/local/hypr-local.conf"
 fi
 
+if [[ ! -f "$DOTFILES/local/user-keybinds.conf" ]]; then
+    mkdir -p "$DOTFILES/local"
+    touch "$DOTFILES/local/user-keybinds.conf"
+fi
+
 step "Deploying configurations"
 mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/.cache/wal"
 BACKUP_DIR="$HOME/.config-backup-$(date +%Y%m%d-%H%M%S)"
