@@ -178,12 +178,19 @@ fi
 ok "Packages installed."
 
 if (( OPT_GTK )); then
-    step "Installing WhiteSur GTK Theme (GitHub)"
-    tmp_theme=$(mktemp -d)
-    git clone --depth=1 https://github.com/vinceliuice/WhiteSur-gtk-theme.git "$tmp_theme" >>"$LOG_FILE" 2>&1
-    ( cd "$tmp_theme" && ./install.sh ) >>"$LOG_FILE" 2>&1 || warn "WhiteSur installation failed. Check log."
-    rm -rf "$tmp_theme"
-    ok "WhiteSur GTK Theme installed."
+    step "Installing WhiteSur GTK & Icon Themes"
+    tmp_gtk=$(mktemp -d)
+    git clone --depth=1 https://github.com/vinceliuice/WhiteSur-gtk-theme.git "$tmp_gtk" >>"$LOG_FILE" 2>&1
+    ( cd "$tmp_gtk" && ./install.sh ) >>"$LOG_FILE" 2>&1 || warn "WhiteSur GTK installation failed."
+    rm -rf "$tmp_gtk"
+    tmp_icon=$(mktemp -d)
+    git clone --depth=1 https://github.com/vinceliuice/WhiteSur-icon-theme.git "$tmp_icon" >>"$LOG_FILE" 2>&1
+    ( cd "$tmp_icon" && ./install.sh ) >>"$LOG_FILE" 2>&1 || warn "WhiteSur Icon installation failed."
+    rm -rf "$tmp_icon"
+    gsettings set org.gnome.desktop.interface gtk-theme "WhiteSur-Dark" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface icon-theme "WhiteSur" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface color-scheme "prefer-dark" 2>/dev/null || true
+    ok "WhiteSur Themes installed and applied."
 fi
 
 step "Enabling services"
@@ -237,7 +244,7 @@ step "Deploying configurations"
 mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/.cache/wal"
 BACKUP_DIR="$HOME/.config-backup-$(date +%Y%m%d-%H%M%S)"
 NEEDS_BACKUP=0
-TARGETS=("$HOME/.config/hypr" "$HOME/.config/kitty" "$HOME/.config/rofi" "$HOME/.config/quickshell" "$HOME/.config/fastfetch" "$HOME/.config/starship.toml" "$HOME/.config/wal")
+TARGETS=("$HOME/.config/hypr" "$HOME/.config/kitty" "$HOME/.config/rofi" "$HOME/.config/quickshell" "$HOME/.config/fastfetch" "$HOME/.config/starship.toml" "$HOME/.config/wal" "$HOME/.config/fish")
 for f in "$DOTFILES/scripts/.local/bin/"*; do TARGETS+=("$HOME/.local/bin/$(basename "$f")"); done
 for target in "${TARGETS[@]}"; do
     if [[ -L "$target" ]]; then rm -f "$target"
