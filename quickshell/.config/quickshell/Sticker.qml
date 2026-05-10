@@ -24,11 +24,13 @@ Item {
     signal updateRotation(int idx, real newRot)
     signal updateIsNew(int idx, bool val)
 
-    readonly property real baseSize:    140
-    readonly property int  textureSize: 320
+    readonly property real maxSize: 120
+    readonly property real naturalW: stickerImage.implicitWidth  > 0 ? stickerImage.implicitWidth  : maxSize
+    readonly property real naturalH: stickerImage.implicitHeight > 0 ? stickerImage.implicitHeight : maxSize
+    readonly property real capScale: Math.min(1.0, maxSize / Math.max(naturalW, naturalH))
 
-    width:  baseSize * stickerScale
-    height: baseSize * stickerScale
+    width:  naturalW * capScale * stickerScale
+    height: naturalH * capScale * stickerScale
     x: posX; y: posY; z: stickerZ
     rotation: baseRot + idleWobble
 
@@ -218,12 +220,12 @@ Item {
             id: stickerImage
             anchors.fill: parent
             source: imgSrc
-            fillMode: Image.PreserveAspectFit
+            fillMode: Image.Stretch
             asynchronous: true
             smooth: true
             mipmap: true
             cache:  true
-            sourceSize: Qt.size(stickerRoot.textureSize, stickerRoot.textureSize)
+            sourceSize: Qt.size(512, 512)
 
             onStatusChanged: {
                 if (status === Image.Ready && isNew && !spawnAnim.running) spawnAnim.start()

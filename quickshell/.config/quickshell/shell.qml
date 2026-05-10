@@ -195,6 +195,19 @@ ShellRoot {
         function toggle() { wallPicker.toggle() }
     }
 
+    IpcHandler {
+        target: "topbar"
+        function show()   { topbar.show() }
+        function hide()   { topbar.hide() }
+        function toggle() { topbar.toggle() }
+    }
+
+    IpcHandler {
+        target: "keybinds"
+        function show()   { keybindsWindow.show() }
+        function hide()   { keybindsWindow.hide() }
+        function toggle() { keybindsWindow.toggle() }
+    }
     // ── sidebar buttons ──
 
     ListModel {
@@ -212,7 +225,7 @@ ShellRoot {
         ListElement { icon: "󰗑"; color_role: "warm";   action: "power_profile"; cmd0: "";                cmd1: "" }
         ListElement { icon: "󰄨"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "btop" }
         ListElement { icon: "󰕾"; color_role: "accent"; action: "cmd";           cmd0: "pavucontrol";     cmd1: "" }
-
+        ListElement { icon: "󰌌"; color_role: "fresh"; action: "cmd"; cmd0: "hyprctl"; cmd1: "dispatch exec quickshell ipc call keybinds toggle" }
     }
 
     ListModel { id: stickerModel }
@@ -303,4 +316,25 @@ ShellRoot {
         themeRawBg:  root.themeRawBg
         themeBg:     root.themeBg
     }
+
+    Topbar {
+        id: topbar
+        themeFg:     root.themeFg
+        themeBg:     root.themeBg
+        themeRawBg:  root.themeRawBg
+        themeAccent: root.themeAccent
+        themeSecond: root.themeSecond
+        themeWarm:   root.themeWarm
+        themeFresh:  root.themeFresh
+    }
+
+    KeybindsWindow {
+        id: keybindsWindow
+        themeBg:     root.themeBg
+        themeFg:     root.themeFg
+        themeAccent: root.themeAccent
+        themeSecond: root.themeSecond
+        themeWarm:   root.themeWarm
+    }
+
 }

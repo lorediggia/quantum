@@ -1,0 +1,459 @@
+import QtQuick
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+
+PanelWindow {
+    id: keybindsWin
+
+    property color themeBg
+    property color themeFg
+    property color themeAccent
+    property color themeSecond
+    property color themeWarm
+
+    readonly property color glassEl:  Qt.rgba(themeFg.r, themeFg.g, themeFg.b, 0.05)
+    readonly property color glassHov: Qt.rgba(themeFg.r, themeFg.g, themeFg.b, 0.10)
+    readonly property color textMain: Qt.rgba(themeFg.r, themeFg.g, themeFg.b, 0.85)
+    readonly property color textDim:  Qt.rgba(themeFg.r, themeFg.g, themeFg.b, 0.32)
+    readonly property color selBg:    Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.32)
+
+    WlrLayershell.namespace: "quickshell-keybinds"
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+    implicitWidth: 460
+    implicitHeight: 600
+    color: "transparent"
+    visible: false
+
+    property bool   formVisible: false
+    property string editingId: ""
+    property string pendingMods: ""
+    property string pendingKey: ""
+    property string pendingExec: ""
+    property string pendingName: ""
+
+    function show()    { visible = true; bootstrapProc.running = true; loadBindsProc.running = true }
+    function hide()    { visible = false; resetForm() }
+    function toggle()  { visible ? hide() : show() }
+    function hasMod(m) { return pendingMods !== "" && pendingMods.split(",").indexOf(m) >= 0 }
+    function canSave() { return pendingKey.trim() !== "" && pendingExec !== "" }
+    function genId()   { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }
+
+    function toggleMod(m) {
+        const a = pendingMods === "" ? [] : pendingMods.split(",")
+        const i = a.indexOf(m)
+        if (i >= 0) a.splice(i, 1); else a.push(m)
+        pendingMods = a.join(",")
+    }
+
+    function resetForm() {
+        editingId = ""; pendingMods = ""; pendingKey = ""
+        pendingExec = ""; pendingName = ""; formVisible = false
+    }
+
+    function editBind(idx) {
+        const b = bindsModel.get(idx)
+        editingId = b.id; pendingMods = b.mods; pendingKey = b.key
+        pendingExec = b.exec; pendingName = b.name; formVisible = true
+    }
+
+    function persist() {
+        const json = []
+        const conf = ["# auto-generated"]
+        for (let i = 0; i < bindsModel.count; i++) {
+            const it = bindsModel.get(i)
+            json.push({ id: it.id, mods: it.mods, key: it.key, name: it.name, exec: it.exec })
+            conf.push("bind = " + (it.mods ? it.mods.replace(/,/g, " ") : "") + ", " + it.key + ", exec, " + it.exec)
+        }
+        const sJ = JSON.stringify(json).replace(/'/g, "'\\''")
+        const sC = conf.join("\n").replace(/'/g, "'\\''")
+        saveProc.command = ["sh", "-c",
+            "printf '%s' '" + sJ + "' > ~/dotfiles/local/user-keybinds.json && " +
+            "printf '%s\\n' '" + sC + "' > ~/dotfiles/local/user-keybinds.conf && " +
+            "hyprctl reload >/dev/null 2>&1 || true"]
+        saveProc.running = true
+    }
+
+    function saveBind() {
+        if (!canSave()) return
+        const fName = pendingName.trim() || pendingExec.split(" ")[0]
+        const fKey  = pendingKey.trim().toUpperCase()
+        if (editingId !== "") {
+            for (let i = 0; i < bindsModel.count; i++) {
+                if (bindsModel.get(i).id === editingId) {
+                    bindsModel.setProperty(i, "mods", pendingMods)
+                    bindsModel.setProperty(i, "key", fKey)
+                    bindsModel.setProperty(i, "name", fName)
+                    bindsModel.setProperty(i, "exec", pendingExec)
+                    break
+                }
+            }
+        } else {
+            bindsModel.insert(0, { id: genId(), mods: pendingMods, key: fKey, name: fName, exec: pendingExec })
+        }
+        persist(); resetForm()
+    }
+
+    ListModel { id: bindsModel }
+
+    Process {
+        id: bootstrapProc
+        command: ["sh", "-c", "mkdir -p ~/dotfiles/local && touch ~/dotfiles/local/user-keybinds.conf && [ -f ~/dotfiles/local/user-keybinds.json ] || echo '[]' > ~/dotfiles/local/user-keybinds.json"]
+    }
+
+    Process {
+        id: loadBindsProc
+        command: ["sh", "-c", "cat ~/dotfiles/local/user-keybinds.json 2>/dev/null || echo '[]'"]
+        property string buf: ""
+        stdout: SplitParser { onRead: (d) => loadBindsProc.buf += d }
+        onExited: {
+            try {
+                const data = JSON.parse(loadBindsProc.buf.trim() || "[]")
+                bindsModel.clear()
+                for (const b of data) bindsModel.append(b)
+            } catch (e) {}
+            loadBindsProc.buf = ""
+        }
+    }
+
+    Process {
+        id: rofiProc
+        command: ["bash", "-c", "compgen -c | grep -v '^_' | sort -u | rofi -dmenu -p 'launch'"]
+        property string buf: ""
+        stdout: SplitParser { onRead: (d) => rofiProc.buf += d }
+        onExited: {
+            const r = rofiProc.buf.trim()
+            if (r) { pendingExec = r; if (!pendingName) pendingName = r.split(" ")[0] }
+            rofiProc.buf = ""
+        }
+    }
+
+    Process { id: saveProc }
+
+    Rectangle {
+        anchors.fill: parent
+        radius: 20
+        color: themeBg
+        clip: true
+        focus: keybindsWin.visible
+        Keys.onEscapePressed: keybindsWin.hide()
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 14
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 14
+                Text {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "✕"
+                    color: textMain
+                    font.pixelSize: 14
+                    opacity: closeMA.containsMouse ? 1.0 : 0.3
+                    scale: closeMA.pressed ? 0.85 : 1.0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                    MouseArea { id: closeMA; anchors.fill: parent; anchors.margins: -10; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: keybindsWin.hide() }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: formVisible ? 220 : 28
+                radius: 12
+                color: formVisible ? glassEl : "transparent"
+                clip: true
+                Behavior on Layout.preferredHeight { NumberAnimation { duration: 320; easing.type: Easing.OutQuart } }
+                Behavior on color { ColorAnimation { duration: 220 } }
+
+                Item {
+                    anchors.fill: parent
+                    visible: !formVisible
+                    Text {
+                        anchors.centerIn: parent
+                        text: "+"
+                        color: textMain
+                        font { pixelSize: 14; weight: Font.Light }
+                        opacity: addMA.containsMouse ? 0.85 : 0.22
+                        scale: addMA.pressed ? 0.85 : 1.0
+                        Behavior on opacity { NumberAnimation { duration: 180 } }
+                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                    }
+                    MouseArea { id: addMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { resetForm(); formVisible = true } }
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 12
+                    visible: formVisible
+                    opacity: visible ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 250 } }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Repeater {
+                            model: ["SUP", "CTL", "ALT", "SHT"]
+                            delegate: Rectangle {
+                                id: pill
+                                property string realMod: ["SUPER", "CTRL", "ALT", "SHIFT"][index]
+                                property bool active: hasMod(realMod)
+                                Layout.preferredHeight: 32
+                                Layout.preferredWidth: 42
+                                radius: 8
+                                color: active ? Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.85) : (mMA.containsMouse ? glassHov : glassEl)
+                                scale: mMA.pressed ? 0.93 : 1.0
+                                Behavior on color { ColorAnimation { duration: 180 } }
+                                Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData
+                                    color: pill.active ? themeBg : textMain
+                                    font { pixelSize: 10; weight: pill.active ? Font.Bold : Font.Medium; letterSpacing: 0.5 }
+                                    Behavior on color { ColorAnimation { duration: 180 } }
+                                }
+                                MouseArea { id: mMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: toggleMod(pill.realMod) }
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
+                        Rectangle {
+                            Layout.preferredWidth: 60
+                            Layout.preferredHeight: 32
+                            radius: 8
+                            color: keyF.activeFocus ? glassHov : glassEl
+                            Behavior on color { ColorAnimation { duration: 180 } }
+                            TextInput {
+                                id: keyF
+                                anchors.fill: parent
+                                horizontalAlignment: TextInput.AlignHCenter
+                                verticalAlignment: TextInput.AlignVCenter
+                                text: pendingKey
+                                onTextChanged: pendingKey = text.toUpperCase()
+                                color: textMain
+                                font { pixelSize: 12; weight: Font.Medium }
+                                maximumLength: 10
+                                selectByMouse: true
+                                clip: true
+                                selectionColor: selBg
+                                selectedTextColor: themeFg
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "key"
+                                    color: textDim
+                                    visible: keyF.text === "" && !keyF.activeFocus
+                                    font.pixelSize: 11
+                                }
+                            }
+                        }
+                    }
+
+                    // rofi launcher
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+                        radius: 8
+                        color: rMA.containsMouse ? glassHov : glassEl
+                        scale: rMA.pressed ? 0.99 : 1.0
+                        Behavior on color { ColorAnimation { duration: 180 } }
+                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                        Text {
+                            anchors.fill: parent
+                            anchors { leftMargin: 12; rightMargin: 12 }
+                            verticalAlignment: Text.AlignVCenter
+                            text: pendingExec || "select command..."
+                            color: pendingExec ? textMain : textDim
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
+                        }
+                        MouseArea { id: rMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: rofiProc.running = true }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+                        radius: 8
+                        color: nameF.activeFocus ? glassHov : glassEl
+                        Behavior on color { ColorAnimation { duration: 180 } }
+                        TextInput {
+                            id: nameF
+                            anchors.fill: parent
+                            anchors { leftMargin: 12; rightMargin: 12 }
+                            verticalAlignment: TextInput.AlignVCenter
+                            text: pendingName
+                            onTextChanged: pendingName = text
+                            color: textMain
+                            font.pixelSize: 12
+                            selectByMouse: true
+                            clip: true
+                            selectionColor: selBg
+                            selectedTextColor: themeFg
+                            Text {
+                                anchors.fill: parent
+                                verticalAlignment: Text.AlignVCenter
+                                text: "label (optional)"
+                                color: textDim
+                                visible: nameF.text === "" && !nameF.activeFocus
+                                font.pixelSize: 12
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.alignment: Qt.AlignRight
+                        spacing: 18
+                        Text {
+                            text: "cancel"
+                            color: textMain
+                            font.pixelSize: 12
+                            opacity: cMA.containsMouse ? 1.0 : 0.4
+                            scale: cMA.pressed ? 0.92 : 1.0
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                            Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                            MouseArea { id: cMA; anchors.fill: parent; anchors.margins: -8; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: resetForm() }
+                        }
+                        Text {
+                            text: "save"
+                            color: canSave() ? themeAccent : textMain
+                            font { pixelSize: 12; weight: canSave() ? Font.Bold : Font.Normal }
+                            opacity: canSave() ? (sMA.containsMouse ? 1.0 : 0.85) : 0.2
+                            scale: sMA.pressed && canSave() ? 0.92 : 1.0
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                            MouseArea { id: sMA; anchors.fill: parent; anchors.margins: -8; hoverEnabled: canSave(); cursorShape: canSave() ? Qt.PointingHandCursor : Qt.ArrowCursor; onClicked: saveBind() }
+                        }
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                ListView {
+                    id: lv
+                    anchors.fill: parent
+                    clip: true
+                    spacing: 4
+                    model: bindsModel
+                    interactive: true
+                    boundsBehavior: Flickable.DragAndOvershootBounds
+                    flickDeceleration: 1500
+                    maximumFlickVelocity: 2000
+                    pixelAligned: true
+                    visible: bindsModel.count > 0
+
+                    add: Transition { ParallelAnimation {
+                        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 240; easing.type: Easing.OutCubic }
+                        NumberAnimation { property: "y"; from: -18; duration: 280; easing.type: Easing.OutCubic }
+                    }}
+                    remove: Transition { ParallelAnimation {
+                        NumberAnimation { property: "opacity"; to: 0; duration: 180 }
+                        NumberAnimation { property: "x"; to: 60; duration: 180; easing.type: Easing.InCubic }
+                    }}
+                    displaced: Transition { NumberAnimation { properties: "x,y"; duration: 240; easing.type: Easing.OutCubic } }
+
+                    delegate: Rectangle {
+                        width: ListView.view.width
+                        height: 52
+                        radius: 10
+                        color: ih.hovered ? glassHov : "transparent"
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                        HoverHandler { id: ih }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors { leftMargin: 14; rightMargin: 14 }
+                            spacing: 14
+
+                            Text {
+                                Layout.preferredWidth: 130
+                                Layout.alignment: Qt.AlignVCenter
+                                text: {
+                                    const a = { SUPER: "SUP", CTRL: "CTL", ALT: "ALT", SHIFT: "SHT" }
+                                    const m = model.mods === "" ? [] : model.mods.split(",").map(x => a[x] || x)
+                                    return m.concat([model.key]).join(" · ")
+                                }
+                                color: themeAccent
+                                opacity: 0.85
+                                font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: Font.Medium; letterSpacing: 0.6 }
+                                elide: Text.ElideRight
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                spacing: 2
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: model.name.toLowerCase()
+                                    color: textMain
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: model.exec
+                                    color: textDim
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.alignment: Qt.AlignVCenter
+                                spacing: 14
+                                opacity: ih.hovered ? 1.0 : 0.0
+                                Behavior on opacity { NumberAnimation { duration: 180 } }
+
+                                Text {
+                                    text: "󰏫"
+                                    color: eMA.containsMouse ? themeAccent : textMain
+                                    font.pixelSize: 14
+                                    opacity: eMA.containsMouse ? 1.0 : 0.4
+                                    scale: eMA.pressed ? 0.85 : 1.0
+                                    Behavior on opacity { NumberAnimation { duration: 100 } }
+                                    Behavior on color { ColorAnimation { duration: 180 } }
+                                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                                    MouseArea { id: eMA; anchors.fill: parent; anchors.margins: -8; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: editBind(index) }
+                                }
+                                Text {
+                                    text: "󰩹"
+                                    color: dMA.containsMouse ? themeWarm : textMain
+                                    font.pixelSize: 14
+                                    opacity: dMA.containsMouse ? 1.0 : 0.4
+                                    scale: dMA.pressed ? 0.85 : 1.0
+                                    Behavior on opacity { NumberAnimation { duration: 100 } }
+                                    Behavior on color { ColorAnimation { duration: 180 } }
+                                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+                                    MouseArea { id: dMA; anchors.fill: parent; anchors.margins: -8; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { bindsModel.remove(index); persist() } }
+                                }
+                            }
+                        }
+                    }
+                }
+                Text {
+                    anchors.centerIn: parent
+                    text: "empty"
+                    color: textDim
+                    font { pixelSize: 11; italic: true; letterSpacing: 0.6 }
+                    visible: bindsModel.count === 0 && !formVisible
+                    SequentialAnimation on opacity {
+                        running: bindsModel.count === 0 && !formVisible && keybindsWin.visible
+                        loops: Animation.Infinite
+                        NumberAnimation { to: 0.6; duration: 1800; easing.type: Easing.InOutSine }
+                        NumberAnimation { to: 0.25; duration: 1800; easing.type: Easing.InOutSine }
+                    }
+                }
+            }
+        }
+    }
+}
