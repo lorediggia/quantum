@@ -143,13 +143,13 @@ PanelWindow {
             StatPill { icon: "󰻠"; value: topbarWindow.cpuUsage;    tint: topbarWindow.themeWarm }
             StatPill { icon: "󰍛"; value: topbarWindow.ramUsage;    tint: topbarWindow.themeFresh }
             StatPill { icon: "󰕾"; value: topbarWindow.volumeLevel; tint: topbarWindow.themeAccent
-                       onActivated: Hyprland.dispatch("exec pavucontrol") }
+                        onActivated: Hyprland.dispatch('hl.dsp.exec_cmd("pavucontrol")') }
             StatPill { icon: topbarWindow.networkIcon; value: ""; tint: topbarWindow.themeSecond
-                       onActivated: Hyprland.dispatch("exec kitty nmtui") }
+                       onActivated: Hyprland.dispatch('hl.dsp.exec_cmd("kitty nmtui")') }
             StatPill { icon: topbarWindow.batteryIcon; value: topbarWindow.batteryPercent
                        tint: topbarWindow.themeAccent }
             StatPill { icon: "󱂬"; value: ""; tint: topbarWindow.themeAccent
-                       onActivated: Hyprland.dispatch("exec quickshell ipc call sidebar toggle") }
+                       onActivated: Hyprland.dispatch('hl.dsp.exec_cmd("quickshell ipc call sidebar toggle")') }
         }
 
         // clock
@@ -294,7 +294,7 @@ PanelWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: Hyprland.dispatch("workspace " + wsRoot.wsId)
+            onClicked: Hyprland.dispatch("hl.dsp.focus({ workspace = " + wsRoot.wsId + " })")
         }
     }
 

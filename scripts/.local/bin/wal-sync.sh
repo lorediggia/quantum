@@ -12,7 +12,7 @@ printf '%s' "$wp_path" > "$state"
 
 wal -i "$wp_path" -qste
 
-[[ -L "$HOME/.config/wal/templates/colors-hyprland.conf" ]] \
+[[ -L "$HOME/.config/wal/templates/colors-hyprland.lua" ]] \
     || (cd "$DOTFILES" && stow -R pywal) 2>/dev/null
 
 if [[ -d $HOOKS_DIR ]]; then

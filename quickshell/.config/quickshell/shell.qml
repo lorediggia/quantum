@@ -217,15 +217,15 @@ ShellRoot {
         ListElement { icon: "󰂯"; color_role: "second"; action: "cmd";           cmd0: "blueman-manager"; cmd1: "" }
         ListElement { icon: "󰖩"; color_role: "accent"; action: "cmd";           cmd0: "kitty";           cmd1: "nmtui" }
         ListElement { icon: "󰊴"; color_role: "second"; action: "cmd";           cmd0: "gamemode.sh";     cmd1: "" }
-        ListElement { icon: "󰏘"; color_role: "accent"; action: "cmd";           cmd0: "hyprctl";         cmd1: "dispatch exec picker.sh" }
+        ListElement { icon: "󰏘"; color_role: "accent"; action: "cmd";           cmd0: "hyprctl"; cmd1: "dispatch hl.dsp.exec_cmd(\"picker.sh\")" }
         ListElement { icon: "󰒲"; color_role: "second"; action: "cmd";           cmd0: "systemctl";       cmd1: "suspend" }
-        ListElement { icon: "󰍃"; color_role: "accent"; action: "cmd";           cmd0: "hyprctl";         cmd1: "dispatch exit" }
+        ListElement { icon: "󰍃"; color_role: "accent"; action: "cmd";           cmd0: "hyprctl"; cmd1: "dispatch hl.dsp.exit()" }
         ListElement { icon: "󰜉"; color_role: "second"; action: "cmd";           cmd0: "systemctl";       cmd1: "reboot" }
         ListElement { icon: "󰐥"; color_role: "accent"; action: "cmd";           cmd0: "systemctl";       cmd1: "poweroff" }
         ListElement { icon: "󰗑"; color_role: "warm";   action: "power_profile"; cmd0: "";                cmd1: "" }
         ListElement { icon: "󰄨"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "btop" }
         ListElement { icon: "󰕾"; color_role: "accent"; action: "cmd";           cmd0: "pavucontrol";     cmd1: "" }
-        ListElement { icon: "󰌌"; color_role: "fresh"; action: "cmd"; cmd0: "hyprctl"; cmd1: "dispatch exec quickshell ipc call keybinds toggle" }
+        ListElement { icon: "󰌌"; color_role: "fresh"; action: "cmd"; cmd0: "hyprctl"; cmd1: "dispatch hl.dsp.exec_cmd(\"quickshell ipc call keybinds toggle\")" }
     }
 
     ListModel { id: stickerModel }
