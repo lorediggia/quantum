@@ -1,18 +1,16 @@
 CFG="$HOME/.config"
 BIN="$HOME/.local/bin"
+BKP="$HOME/.config-backup-$(date +%Y%m%d)"
 mkdir -p "$CFG" "$BIN"
 
 link_node() {
-    if [[ -d "$2" && ! -L "$2" ]]; then
-        local tmp
-        tmp=$(mktemp -u "${2}.XXXXXX")
-        mv "$2" "$tmp"
-        ln -sfnT "$1" "$2"
-        rm -rf "$tmp"
+    if [[ -e "$2" && ! -L "$2" ]]; then
+        mkdir -p "$BKP"
+        mv "$2" "$BKP/$(basename "$2")"
     else
         rm -rf "$2"
-        ln -sfnT "$1" "$2"
     fi
+    ln -sfnT "$1" "$2"
 }
 
 if on HYPR;  then link_node "$DOTFILES/config/hypr" "$CFG/hypr"; fi
