@@ -4,9 +4,8 @@ set -euo pipefail
 export DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 INSTALLER="$DOTFILES/installer"
 
+cd "$DOTFILES" && git pull
+
 source "$INSTALLER/env.sh"
-menu
-source "$INSTALLER/pkgs.sh"
-source "$INSTALLER/themes.sh"
 source "$INSTALLER/links.sh"
 finalize

@@ -1,8 +1,0 @@
--- shared program identifiers 
-return {
-    mainMod     = "SUPER",
-    terminal    = "kitty",
-    fileManager = "nautilus",
-    menu        = "rofi -show drun",
-    browser     = "zen-browser",
-}

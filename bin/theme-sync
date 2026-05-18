@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+wp_path="${1:-$(cat "$HOME/.cache/wal-sync.last" 2>/dev/null)}"
+[[ -z $wp_path ]] && exit 1
+
+state="$HOME/.cache/wal-sync.last"
+[[ -f $state && $(< "$state") == "$wp_path" ]] && exit 0
+printf '%s' "$wp_path" > "$state"
+
+wallust run "$wp_path" -q
+
+pkill -USR1 kitty 2>/dev/null || true

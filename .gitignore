@@ -1,9 +1,10 @@
-# ── quantum .gitignore ──
 local/
-**/target/
-logo/holograph/*/
 *.log
-.cache/
+target/
+**/target/
+logo/
 .vscode/
 .idea/
-logo/img
+*.swp
+*~
+.cache/
