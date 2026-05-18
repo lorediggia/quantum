@@ -9,10 +9,19 @@ menu
 
 CFG="$HOME/.config"
 BIN="$HOME/.local/bin"
+LATEST_BKP=$(ls -d $HOME/.config-backup-[0-9]* 2>/dev/null | sort | tail -n 1 || true)
 
 unlink_node() {
-    if [[ -L "$1" ]]; then
-        rm -f "$1"
+    local target="$1"
+    local base
+    base=$(basename "$target")
+    
+    if [[ -L "$target" ]]; then
+        rm -rf "$target"
+    fi
+    
+    if [[ -n "$LATEST_BKP" && -e "$LATEST_BKP/$base" ]]; then
+        mv "$LATEST_BKP/$base" "$target"
     fi
 }
 
@@ -37,6 +46,10 @@ for f in "$DOTFILES/bin/"*; do
 done
 
 if on HOLO; then unlink_node "$BIN/holograph"; fi
+
+if [[ -n "$LATEST_BKP" && -d "$LATEST_BKP" ]]; then
+    rmdir "$LATEST_BKP" 2>/dev/null || true
+fi
 
 clear
 echo "Uninstallation finished successfully."
