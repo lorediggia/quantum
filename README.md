@@ -63,6 +63,8 @@ chmod +x install.sh
   
 The installer opens an interactive TUI menu where you pick exactly what to install. Use arrow keys to navigate, `SPACE` to toggle, `ENTER` to confirm.
 
+A system reboot is required to apply changes.
+
 _Existing configs are safely backed up to `~/.config-backup-YYYYMMDD`._
 
 ## ✦ File Structure
