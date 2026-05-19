@@ -13,7 +13,7 @@ hl.bind(m .. " + S",                 hl.dsp.exec_cmd([[sh -c 'GEOM=$(slurp -b 00
 hl.bind(m .. " + F",                 hl.dsp.exec_cmd("sh -c 'grim - | wl-copy'"))
 hl.bind(m .. " + Z",                 hl.dsp.exec_cmd("topbar"))
 hl.bind(m .. " + K",                 hl.dsp.exec_cmd("keybinds-toggle"))
-hl.bind(m .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
+hl.bind(m .. " + G",                 hl.dsp.exec_cmd("grim ~/Pictures/screenshot.png"))
 
 -- mouse
 hl.bind(m .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
