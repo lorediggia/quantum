@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+import configparser
+import glob
+import os
+import re
+import sys
+
+seen = set()
+DIRS = []
+def add(d):
+    real = os.path.realpath(d)
+    if real not in seen:
+        seen.add(real)
+        DIRS.append(d)
+
+for base in os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":"):
+    if base:
+        add(os.path.join(base, "applications"))
+
+home_data = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+add(os.path.join(home_data, "applications"))
+add("/var/lib/flatpak/exports/share/applications")
+add(os.path.join(home_data, "flatpak/exports/share/applications"))
+add("/var/lib/snapd/desktop/applications")
+
+FIELD_CODE = re.compile(r" ?%[a-zA-Z]")
+
+apps = {}
+for d in DIRS:
+    if not os.path.isdir(d):
+        continue
+    for path in glob.iglob(os.path.join(d, "**", "*.desktop"), recursive=True):
+        try:
+            cp = configparser.RawConfigParser(strict=False)
+            cp.read(path, encoding="utf-8")
+            if "Desktop Entry" not in cp:
+                continue
+            e = cp["Desktop Entry"]
+            if e.get("NoDisplay", "").strip().lower() == "true": continue
+            if e.get("Hidden",    "").strip().lower() == "true": continue
+            name = e.get("Name", "").strip()
+            ex   = e.get("Exec", "").strip()
+            if not name or not ex:
+                continue
+            ex = FIELD_CODE.sub("", ex).strip()
+            apps[name.lower()] = (name, ex)
+        except Exception:
+            continue
+
+for n, ex in sorted(apps.values(), key=lambda x: x[0].lower()):
+    sys.stdout.write(f"{n}\t{ex}\n")

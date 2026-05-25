@@ -2,6 +2,6 @@ return {
     mainMod     = "SUPER",
     terminal    = "kitty",
     fileManager = "nautilus",
-    menu        = "rofi -show drun",
+    menu        = "launcher",
     browser     = "zen-browser",
 }

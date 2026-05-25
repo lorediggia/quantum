@@ -7,6 +7,31 @@ c_dim=$(tput setaf 8 2>/dev/null || tput setaf 7)
 c_bold=$(tput bold)
 c_reset=$(tput sgr0)
 
+echo -n "${c_accent}󰚰 Checking for updates...${c_reset} "
+
+tmp_arch=$(mktemp); tmp_aur=$(mktemp)
+trap 'rm -f "$tmp_arch" "$tmp_aur"' EXIT
+
+checkupdates 2>/dev/null > "$tmp_arch" &
+yay -Qua     2>/dev/null > "$tmp_aur"  &
+wait
+
+updates_arch=$(<"$tmp_arch")
+updates_aur=$(<"$tmp_aur")
+
+count_arch=0; count_aur=0
+[[ -n $updates_arch ]] && count_arch=$(echo "$updates_arch" | wc -l)
+[[ -n $updates_aur  ]] && count_aur=$(echo "$updates_aur"  | wc -l)
+total=$((count_arch + count_aur))
+
+echo "done."
+
+if [ "$total" -eq 0 ]; then
+    echo -e "\n󰄬 ${c_ok}System is already up to date. Awesome!${c_reset}"
+    sleep 2
+    exit 0
+fi
+
 clear
 echo "${c_accent}${c_bold}"
 cat <<'EOF'
@@ -18,38 +43,18 @@ EOF
 echo "${c_reset}"
 
 echo "${c_dim}───────────────────────────────────────────────────────${c_reset}"
-echo " OS:      $(grep PRETTY_NAME /etc/os-release | cut -d'=' -f2 | tr -d '\"')"
+echo " OS:      $(grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '\"')"
 echo " Kernel:  $(uname -r)"
 echo "${c_dim}───────────────────────────────────────────────────────${c_reset}"
-
-echo -e "\n${c_accent}󰚰 Checking for updates...${c_reset}"
-
-updates_arch=$(checkupdates 2>/dev/null || true)
-updates_aur=$(yay -Qua 2>/dev/null || true)
-
-count_arch=$(echo -n "$updates_arch" | grep -c '^' || true)
-count_aur=$(echo -n "$updates_aur" | grep -c '^' || true)
-
-[[ -z "$updates_arch" ]] && count_arch=0
-[[ -z "$updates_aur" ]] && count_aur=0
-
-total=$((count_arch + count_aur))
-
-if [ "$total" -eq 0 ]; then
-    echo -e "\n󰄬 ${c_ok}System is already up to date. Awesome!${c_reset}"
-    sleep 2
-    exit 0
-fi
-
-echo "${c_dim}───────────────────────────────────────────────────────${c_reset}"
-echo -e " Total updates available: ${c_yellow}${c_bold}$total${c_reset}"
+echo " Total updates available: ${c_yellow}${c_bold}$total${c_reset}"
 echo " (Pacman: $count_arch | AUR: $count_aur)"
 echo "${c_dim}───────────────────────────────────────────────────────${c_reset}"
 echo ""
 
 [ "$count_arch" -gt 0 ] && echo -e "${c_accent}[Pacman]${c_reset}\n$updates_arch"
-[ "$count_aur" -gt 0 ]  && echo -e "\n${c_yellow}[AUR]${c_reset}\n$updates_aur"
+[ "$count_aur"  -gt 0 ] && echo -e "\n${c_yellow}[AUR]${c_reset}\n$updates_aur"
 echo ""
+
 read -p "Proceed with installation? [Y/n] " confirm
 if [[ ${confirm,,} =~ ^n ]]; then
     echo "Operation cancelled."

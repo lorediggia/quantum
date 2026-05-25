@@ -54,7 +54,10 @@ Item {
                 font { family: "JetBrainsMono Nerd Font"; pixelSize: 72; weight: Font.ExtraLight }
                 Component.onCompleted: text = Qt.formatTime(new Date(), "hh:mm")
                 Timer {
-                    interval: 10000; running: true; repeat: true; triggeredOnStart: true
+                    interval: 10000
+                    running: sidebarContentRoot.visible
+                    repeat: true
+                    triggeredOnStart: true
                     onTriggered: clockT.text = Qt.formatTime(new Date(), "hh:mm")
                 }
             }
@@ -188,7 +191,8 @@ Item {
                                 anchors.fill: parent
                                 fillMode: Image.PreserveAspectCrop
                                 smooth: true
-                                cache: true
+                                cache: false
+                                mipmap: false
                                 asynchronous: true
                                 sourceSize: Qt.size(170, 170)
                             }
@@ -198,7 +202,8 @@ Item {
                                 anchors.fill: parent
                                 fillMode: Image.PreserveAspectCrop
                                 smooth: true
-                                cache: true
+                                cache: false
+                                mipmap: false
                                 asynchronous: true
                                 sourceSize: Qt.size(170, 170)
                                 opacity: 0

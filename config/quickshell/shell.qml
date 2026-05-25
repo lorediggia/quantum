@@ -22,9 +22,11 @@ ShellRoot {
     property var  stickerSizes: ({})
     property bool isRestoring:  false
 
-    //battery
+    // battery
     property string batteryPercent: ""
     property string batteryIcon:    "󰁹"
+
+    property var allApps: []
 
     // power profile
     readonly property var powerProfiles: ["power-saver", "balanced", "performance"]
@@ -34,6 +36,7 @@ ShellRoot {
     function runCmd(cmd)        { cmdProc.command = cmd; cmdProc.running = true }
     function addRandomSticker() { stickerPickerProc.running = true }
     function triggerSave()      { if (!isRestoring) saveDebounce.restart() }
+    function flushSave()        { if (!isRestoring) { saveDebounce.stop(); saveStickers() } }
 
     function cyclePowerProfile() {
         currentPowerIndex = (currentPowerIndex + 1) % 3
@@ -57,63 +60,93 @@ ShellRoot {
             })
         }
         const safeJson = JSON.stringify(data).replace(/'/g, "'\\''")
-        saveProc.command = ["sh", "-c", "echo '" + safeJson + "' > ~/.cache/sidebar_stickers.json"]
+        saveProc.command = ["sh", "-c",
+            "f=~/.cache/sidebar_stickers.json; " +
+            "printf '%s' '" + safeJson + "' > \"$f.tmp\" && mv \"$f.tmp\" \"$f\""
+        ]
         saveProc.running = true
     }
 
     Component.onCompleted: {
         loadStickersProc.running = true
-        batFile.reload()
+        batProc.running = true
+        loadAppsProc.running = true
     }
 
-    // colors
+
     FileView {
         id: colorFile
         path: Quickshell.env("HOME") + "/.cache/wal/colors.json"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
-    try {
-        const c = JSON.parse(text())
-        root.themeRawBg  = c.special.background
-        root.themeFg     = c.special.foreground
-        root.themeWarm   = c.colors.color1
-        root.themeFresh  = c.colors.color2
-        root.themeAccent = c.colors.color4
-        root.themeSecond = c.colors.color3  
-        root.themeBg     = "#99" + c.special.background.slice(1)
-    } catch (e) {}
-}
+            try {
+                const c = JSON.parse(text())
+                root.themeRawBg  = c.special.background
+                root.themeFg     = c.special.foreground
+                root.themeWarm   = c.colors.color1
+                root.themeFresh  = c.colors.color2
+                root.themeAccent = c.colors.color4
+                root.themeSecond = c.colors.color3
+                root.themeBg     = "#99" + c.special.background.slice(1)
+            } catch (e) {}
+        }
     }
 
-    // battery
-    FileView {
-        id: batFile
-        path: "/sys/class/power_supply/BAT0/capacity"
-        onLoaded: {
-            const cap = parseInt(text().trim())
-            if (isNaN(cap)) return
-            root.batteryPercent = cap + "%"
-            statusFile.reload()
-            root.batteryIcon = cap > 90 ? "󰁹" : cap > 70 ? "󰂀"
-                             : cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎"
+    Process {
+        id: batProc
+        command: ["sh", "-c",
+            "for d in /sys/class/power_supply/BAT*; do" +
+            "  [ -f \"$d/capacity\" ] || continue;" +
+            "  echo \"$(cat $d/capacity)|$(cat $d/status 2>/dev/null)\";" +
+            "  exit;" +
+            "done;" +
+            "ac=$(cat /sys/class/power_supply/AC/online 2>/dev/null || echo 0);" +
+            "echo \"|AC|$ac\""
+        ]
+        property string buf: ""
+        stdout: SplitParser { onRead: (d) => batProc.buf += d }
+        onExited: {
+            const p = batProc.buf.trim().split("|")
+            batProc.buf = ""
+            const cap = parseInt(p[0])
+            if (!isNaN(cap)) {
+                root.batteryPercent = cap + "%"
+                root.batteryIcon    = cap > 90 ? "󰁹" : cap > 70 ? "󰂀"
+                                    : cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎"
+                if ((p[1] ?? "").trim() === "Charging") root.batteryIcon = "󰂄"
+            } else if ((p[2] ?? "").trim() === "1") {
+                root.batteryIcon    = "󰚥"
+                root.batteryPercent = "AC"
+            }
         }
     }
-    FileView {
-        id: statusFile
-        path: "/sys/class/power_supply/BAT0/status"
-        onLoaded: {
-            if (text().trim() === "Charging") root.batteryIcon = "󰂄"
+    Timer { interval: 60000; running: true; repeat: true; onTriggered: batProc.running = true }
+
+    Process {
+        id: loadAppsProc
+        command: ["launcher-apps"]
+        property string buf: ""
+        stdout: SplitParser { onRead: (d) => loadAppsProc.buf += d + "\n" }
+        onExited: {
+            const apps = []
+            for (const line of loadAppsProc.buf.split("\n")) {
+                if (!line) continue
+                const i = line.indexOf("\t")
+                if (i < 0) continue
+                apps.push({ name: line.substring(0, i), exec: line.substring(i + 1) })
+            }
+            root.allApps = apps
+            loadAppsProc.buf = ""
         }
     }
-    Timer { interval: 60000; running: true; repeat: true; onTriggered: batFile.reload() }
 
     // sticker persistence
     Timer { id: saveDebounce; interval: 200; onTriggered: root.saveStickers() }
     Process { id: saveProc }
     Process {
         id: loadStickersProc
-        command: ["sh", "-c", "cat ~/.cache/sidebar_stickers.json 2>/dev/null || echo ''"]
+        command: ["sh", "-c", "sticker-load 2>/dev/null || cat ~/.cache/sidebar_stickers.json 2>/dev/null || echo ''"]
         property string buffer: ""
         stdout: SplitParser { onRead: (data) => loadStickersProc.buffer += data }
         onExited: (code) => {
@@ -136,7 +169,6 @@ ShellRoot {
 
     Process { id: powerProc }
     Process { id: cmdProc }
-
     Process {
         id: stickerPickerProc
         command: ["sh", "-c", "find \"$HOME/dotfiles/logo/img/\" -type f \\( -name '*.png' -o -name '*.jpg' \\) | shuf -n 1"]
@@ -154,36 +186,53 @@ ShellRoot {
                     stickerScale: root.stickerSizes[imgPath] || 1.0,
                     isNew:        true
                 })
-                root.triggerSave()
+                root.flushSave()
             }
         }
     }
 
-    // ipc
     IpcHandler {
         target: "sidebar"
         function toggle() { sidebarWindow.visible = !sidebarWindow.visible }
     }
     IpcHandler {
-        target: "wall_e"
-        function show()   { wallPicker.show() }
-        function hide()   { wallPicker.hide() }
-        function toggle() { wallPicker.toggle() }
+        target: "topbar"
+        function show()   { topbarLoader.active = true;  if (topbarLoader.item) topbarLoader.item.show() }
+        function hide()   { topbarLoader.active = false }
+        function toggle() {
+            if (topbarLoader.active) topbarLoader.active = false
+            else { topbarLoader.active = true; topbarLoader.item.show() }
+        }
     }
     IpcHandler {
-        target: "topbar"
-        function show()   { topbar.show() }
-        function hide()   { topbar.hide() }
-        function toggle() { topbar.toggle() }
+        target: "wall_e"
+        function show()   { wallPickerLoader.active = true; if (wallPickerLoader.item) wallPickerLoader.item.show() }
+        function hide()   { wallPickerLoader.active = false }
+        function toggle() {
+            if (wallPickerLoader.active) wallPickerLoader.active = false
+            else { wallPickerLoader.active = true; wallPickerLoader.item.show() }
+        }
     }
     IpcHandler {
         target: "keybinds"
-        function show()   { keybindsWindow.show() }
-        function hide()   { keybindsWindow.hide() }
-        function toggle() { keybindsWindow.toggle() }
+        function show()   { keybindsLoader.active = true; if (keybindsLoader.item) keybindsLoader.item.show() }
+        function hide()   { keybindsLoader.active = false }
+        function toggle() {
+            if (keybindsLoader.active) keybindsLoader.active = false
+            else { keybindsLoader.active = true; keybindsLoader.item.show() }
+        }
+    }
+    IpcHandler {
+        target: "launcher"
+        function show()   { launcherLoader.active = true; if (launcherLoader.item) launcherLoader.item.show() }
+        function hide()   { launcherLoader.active = false }
+        function toggle() {
+            if (launcherLoader.active) launcherLoader.active = false
+            else { launcherLoader.active = true; launcherLoader.item.show() }
+        }
     }
 
-    // sidebar buttons
+    // sidebar buttons 
     ListModel {
         id: buttonModel
         ListElement { icon: "󰚰"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "update" }
@@ -204,7 +253,7 @@ ShellRoot {
 
     ListModel { id: stickerModel }
 
-    // sidebar window
+
     PanelWindow {
         id: sidebarWindow
         WlrLayershell.namespace:     "quickshell-sidebar"
@@ -269,7 +318,7 @@ ShellRoot {
                         modelIndex:   index
 
                         onRequireSave:                       root.triggerSave()
-                        onRequireDestroy:     (idx) =>       { stickerModel.remove(idx); root.triggerSave() }
+                        onRequireDestroy:     (idx) =>       { stickerModel.remove(idx); root.flushSave() }
                         onRequireZUpdate:     (idx) =>       { root.highestZ += 1; stickerModel.setProperty(idx, "stickerZ", root.highestZ) }
                         onUpdatePosition:     (idx, x, y) => { stickerModel.setProperty(idx, "posX", x); stickerModel.setProperty(idx, "posY", y) }
                         onUpdateScaleAndSave: (idx, p, s) => { stickerModel.setProperty(idx, "stickerScale", s); root.stickerSizes[p] = s }
@@ -281,33 +330,64 @@ ShellRoot {
         }
     }
 
-    WallPicker {
-        id: wallPicker
-        themeAccent: root.themeAccent
-        themeFg:     root.themeFg
-        themeRawBg:  root.themeRawBg
-        themeBg:     root.themeBg
+
+
+    Loader {
+        id: topbarLoader
+        active: false
+        sourceComponent: Component {
+            Topbar {
+                themeFg:        root.themeFg
+                themeBg:        root.themeBg
+                themeRawBg:     root.themeRawBg
+                themeAccent:    root.themeAccent
+                themeSecond:    root.themeSecond
+                themeWarm:      root.themeWarm
+                themeFresh:     root.themeFresh
+                batteryPercent: root.batteryPercent
+                batteryIcon:    root.batteryIcon
+            }
+        }
     }
 
-    Topbar {
-        id: topbar
-        themeFg:        root.themeFg
-        themeBg:        root.themeBg
-        themeRawBg:     root.themeRawBg
-        themeAccent:    root.themeAccent
-        themeSecond:    root.themeSecond
-        themeWarm:      root.themeWarm
-        themeFresh:     root.themeFresh
-        batteryPercent: root.batteryPercent
-        batteryIcon:    root.batteryIcon
+    Loader {
+        id: wallPickerLoader
+        active: false
+        sourceComponent: Component {
+            WallPicker {
+                themeAccent: root.themeAccent
+                themeFg:     root.themeFg
+                themeRawBg:  root.themeRawBg
+                themeBg:     root.themeBg
+            }
+        }
     }
 
-    KeybindsWindow {
-        id: keybindsWindow
-        themeBg:     root.themeBg
-        themeFg:     root.themeFg
-        themeAccent: root.themeAccent
-        themeSecond: root.themeSecond
-        themeWarm:   root.themeWarm
+    Loader {
+        id: keybindsLoader
+        active: false
+        sourceComponent: Component {
+            KeybindsWindow {
+                themeBg:     root.themeBg
+                themeFg:     root.themeFg
+                themeAccent: root.themeAccent
+                themeSecond: root.themeSecond
+                themeWarm:   root.themeWarm
+            }
+        }
+    }
+
+    Loader {
+        id: launcherLoader
+        active: false
+        sourceComponent: Component {
+            Launcher {
+                allApps:     root.allApps
+                themeBg:     root.themeBg
+                themeFg:     root.themeFg
+                themeAccent: root.themeAccent
+                themeSecond: root.themeSecond
+            }
+        }
     }
 }

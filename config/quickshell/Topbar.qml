@@ -19,12 +19,12 @@ PanelWindow {
     property string batteryPercent: ""
     property string batteryIcon:    "󰁹"
 
-    property string cpuUsage:    "—"
-    property string ramUsage:    "—"
-    property string volumeLevel: "—"
-    property string volumeIcon:  "󰕾"
-    property string networkIcon: "󰖪"
-    property var lastCpu: ({ u: 0, t: 0 })
+    property string ramUsage:     "—"
+    property string volumeLevel:  "—"
+    property string volumeIcon:   "󰕾"
+    property string networkIcon:  "󰖪"
+    property string bluetoothIcon: "󰂲"
+    property bool   bluetoothOn:   false
 
     function show()   { visible = true }
     function hide()   { visible = false }
@@ -58,37 +58,33 @@ PanelWindow {
     Process {
         id: statsProc
         command: ["sh", "-c",
-            "cpu=$(awk 'NR==1{printf \"%d %d\", $2+$4, $2+$3+$4+$5; exit}' /proc/stat);" +
             "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" +
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
             "net=$(nmcli -t -f STATE general 2>/dev/null);" +
-            "echo \"$cpu|$mem|$vol|$net\""
+            "bt=$(bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}');" +
+            "echo \"$mem|$vol|$net|$bt\""
         ]
         property string buffer: ""
         stdout: SplitParser { onRead: (d) => statsProc.buffer += d }
         onExited: {
             const p = statsProc.buffer.trim().split("|")
             statsProc.buffer = ""
-            if (p.length < 2) return
+            if (p.length < 1) return
 
-            const cs = p[0].trim().split(" ").map(Number)
-            const u = cs[0] || 0, t = cs[1] || 0
-            const du = u - topbarWindow.lastCpu.u
-            const dt = t - topbarWindow.lastCpu.t
-            if (topbarWindow.lastCpu.t > 0 && dt > 0)
-                topbarWindow.cpuUsage = Math.round(du * 100 / dt) + "%"
-            topbarWindow.lastCpu = { u: u, t: t }
-
-            if (p[1]) topbarWindow.ramUsage = p[1]
-            if (p[2]) {
-                topbarWindow.volumeLevel = p[2] + "%"
-                const v = parseInt(p[2])
+            if (p[0]) topbarWindow.ramUsage = p[0]
+            if (p[1]) {
+                topbarWindow.volumeLevel = p[1] + "%"
+                const v = parseInt(p[1])
                 topbarWindow.volumeIcon =
                     isNaN(v) || v <= 0 ? "󰝟" :
                     v < 33 ? "󰕿" :
                     v < 67 ? "󰖀" : "󰕾"
             }
-            if (p[3]) topbarWindow.networkIcon = p[3].trim() === "connected" ? "󰖩" : "󰖪"
+            if (p[2]) topbarWindow.networkIcon = p[2].trim() === "connected" ? "󰖩" : "󰖪"
+            if (p[3] !== undefined) {
+                topbarWindow.bluetoothOn   = p[3].trim() === "yes"
+                topbarWindow.bluetoothIcon = topbarWindow.bluetoothOn ? "󰂯" : "󰂲"
+            }
         }
     }
     Timer {
@@ -131,13 +127,8 @@ PanelWindow {
                 id: motion
                 property real fast: workspacesArea.targetX
                 property real slow: workspacesArea.targetX
-
-                Behavior on fast {
-                    NumberAnimation { duration: 280; easing.type: Easing.OutExpo }
-                }
-                Behavior on slow {
-                    NumberAnimation { duration: 540; easing.type: Easing.OutExpo }
-                }
+                Behavior on fast { NumberAnimation { duration: 280; easing.type: Easing.OutExpo } }
+                Behavior on slow { NumberAnimation { duration: 540; easing.type: Easing.OutExpo } }
             }
 
             Rectangle {
@@ -178,6 +169,7 @@ PanelWindow {
                 Behavior on opacity { NumberAnimation { duration: 220 } }
                 Behavior on color   { ColorAnimation  { duration: 320 } }
             }
+
             // nums
             Row {
                 id: wsRow
@@ -226,7 +218,6 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            
                             onClicked: Hyprland.dispatch('hl.dsp.focus({ workspace = ' + (index + 1) + ' })')
                         }
                     }
@@ -235,7 +226,6 @@ PanelWindow {
         }
 
         // clock
-
         ColumnLayout {
             id: clockArea
             anchors.horizontalCenter: parent.horizontalCenter
@@ -249,7 +239,10 @@ PanelWindow {
                 color: topbarWindow.themeAccent
                 font { family: "JetBrainsMono Nerd Font"; pixelSize: 19; weight: Font.Light; letterSpacing: 1.2 }
                 Timer {
-                    interval: 10000; running: true; repeat: true; triggeredOnStart: true
+                    interval: 10000
+                    running: topbarWindow.visible
+                    repeat: true
+                    triggeredOnStart: true
                     property string last: ""
                     onTriggered: {
                         const t = Qt.formatTime(new Date(), "hh:mm")
@@ -272,18 +265,12 @@ PanelWindow {
         }
 
         // stats
-        
         Row {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             anchors.rightMargin: 12
             spacing: 10
 
-            IconButton {
-                boxSize: 36; boxRadius: 11; iconSize: 15
-                icon: "󰻠"; value: topbarWindow.cpuUsage
-                tint: topbarWindow.themeWarm; baseFg: topbarWindow.themeFg
-            }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: "󰍛"; value: topbarWindow.ramUsage
@@ -303,7 +290,15 @@ PanelWindow {
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
-                icon: topbarWindow.batteryIcon; value: topbarWindow.batteryPercent
+                icon: topbarWindow.bluetoothIcon
+                tint: topbarWindow.bluetoothOn ? topbarWindow.themeAccent : topbarWindow.themeSecond
+                baseFg: topbarWindow.themeFg
+                onActivated: topbarWindow.spawn(["blueman-manager"])
+            }
+            IconButton {
+                boxSize: 36; boxRadius: 11; iconSize: 15
+                icon: topbarWindow.batteryIcon
+                value: topbarWindow.batteryPercent === "AC" ? "" : topbarWindow.batteryPercent
                 tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
                 visible: topbarWindow.batteryPercent !== ""
             }

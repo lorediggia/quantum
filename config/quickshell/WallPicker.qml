@@ -57,7 +57,12 @@ PanelWindow {
     Process { id: applyProc }
 
     function applyWall(path) {
-        applyProc.command = ["sh", "-c", "awww img '" + path + "' --transition-type fade --transition-duration 1.5 && \"$HOME/.local/bin/theme-sync\" '" + path + "'"]
+     
+        applyProc.command = [
+            "sh", "-c",
+            'awww img "$1" --transition-type fade --transition-duration 1.5 && "$HOME/.local/bin/theme-sync" "$1"',
+            "_", path
+        ]
         applyProc.running = true
         hide()
     }

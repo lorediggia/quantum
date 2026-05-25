@@ -82,6 +82,12 @@ hl.layer_rule({
 })
 
 hl.layer_rule({
+    name         = "launcher-anim",
+    match        = { namespace = "quickshell-launcher" },
+    animation    = "slide top",
+})
+
+hl.layer_rule({
     name         = "wallpicker-glass",
     match        = { namespace = "wallpicker" },
     blur         = true,

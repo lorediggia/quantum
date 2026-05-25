@@ -21,6 +21,13 @@ Item {
 
     signal activated()
 
+    function fgColor() {
+        if (root.active || btnMouse.pressed) return root.baseFg
+        return btnMouse.containsMouse
+            ? root.tint
+            : Qt.rgba(root.baseFg.r, root.baseFg.g, root.baseFg.b, 0.75)
+    }
+
     implicitWidth:  (value === "") ? boxSize : content.implicitWidth + hPadding
     implicitHeight: boxSize
 
@@ -44,11 +51,7 @@ Item {
 
             Text {
                 text: root.icon
-                color: root.active || btnMouse.pressed
-                    ? root.baseFg
-                    : (btnMouse.containsMouse
-                        ? root.tint
-                        : Qt.rgba(root.baseFg.r, root.baseFg.g, root.baseFg.b, 0.75))
+                color: root.fgColor()
                 font {
                     family:    "JetBrainsMono Nerd Font"
                     pixelSize: root.iconSize
@@ -60,11 +63,7 @@ Item {
             Text {
                 visible: root.value !== ""
                 text:    root.value
-                color: root.active || btnMouse.pressed
-                    ? root.baseFg
-                    : (btnMouse.containsMouse
-                        ? root.tint
-                        : Qt.rgba(root.baseFg.r, root.baseFg.g, root.baseFg.b, 0.75))
+                color: root.fgColor()
                 font {
                     family:    "JetBrainsMono Nerd Font"
                     pixelSize: root.valueSize

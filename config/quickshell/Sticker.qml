@@ -121,11 +121,14 @@ Item {
         onEntered: stickerRoot.forceActiveFocus()
 
         onPositionChanged: (mouse) => {
-            const actualX = mouse.x - 20, actualY = mouse.y - 20
-            const normX = Math.max(-1, Math.min(1, (actualX - width  / 2) / (width  / 2)))
-            const normY = Math.max(-1, Math.min(1, (actualY - height / 2) / (height / 2)))
-            stickerRoot.tiltX = -normY * 20
-            stickerRoot.tiltY =  normX * 20
+           
+            if (containsMouse || drag.active) {
+                const actualX = mouse.x - 20, actualY = mouse.y - 20
+                const normX = Math.max(-1, Math.min(1, (actualX - width  / 2) / (width  / 2)))
+                const normY = Math.max(-1, Math.min(1, (actualY - height / 2) / (height / 2)))
+                stickerRoot.tiltX = -normY * 20
+                stickerRoot.tiltY =  normX * 20
+            }
 
             if (drag.active) {
                 const now = Date.now()
@@ -210,9 +213,9 @@ Item {
             fillMode: Image.Stretch
             asynchronous: true
             smooth: true
-            mipmap: true
+            mipmap: false
             cache:  true
-            sourceSize: Qt.size(256, 256)
+            sourceSize: Qt.size(128, 128)
 
             onStatusChanged: {
                 if (status === Image.Ready && isNew && !spawnAnim.running) spawnAnim.start()

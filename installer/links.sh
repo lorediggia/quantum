@@ -25,11 +25,16 @@ if on ROFI;  then link_node "$DOTFILES/config/rofi" "$CFG/rofi"; fi
 if on FF;    then link_node "$DOTFILES/config/fastfetch" "$CFG/fastfetch"; fi
 
 for f in "$DOTFILES/bin/"*; do
-    if [[ -f "$f" ]]; then
-        link_node "$f" "$BIN/$(basename "$f")"
-        chmod +x "$f"
-    fi
+    [[ -f "$f" ]] || continue
+    link_node "$f" "$BIN/$(basename "$f")"
+    chmod +x "$f"
 done
+
+if [[ -f "$DOTFILES/bin/qs" ]]; then
+    for tgt in sidebar topbar wall keybinds; do
+        link_node "$DOTFILES/bin/qs" "$BIN/$tgt"
+    done
+fi
 
 if on HOLO; then
     if [[ -d "$DOTFILES/holograph" ]]; then
