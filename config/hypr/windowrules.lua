@@ -21,6 +21,7 @@ hl.window_rule({
     float  = true,
     size   = { 700, 500 },
     center = true,
+    opacity   = "0.80 override 0.80 override 1.0 override",
 })
 
 hl.window_rule({
@@ -29,7 +30,7 @@ hl.window_rule({
     float     = true,
     size      = { 700, 500 },
     center    = true,
-    animation = "popin",
+    opacity   = "0.80 override 0.80 override 1.0 override",
 })
 
 hl.window_rule({
@@ -73,15 +74,6 @@ hl.layer_rule({
 })
 
 hl.layer_rule({
-    name         = "rofi-glass",
-    match        = { namespace = "rofi" },
-    blur         = true,
-    ignore_alpha = 0.2,
-    xray         = true,
-    animation    = "slide top",
-})
-
-hl.layer_rule({
     name         = "launcher-anim",
     match        = { namespace = "quickshell-launcher" },
     animation    = "slide top",
@@ -101,3 +93,10 @@ hl.layer_rule({
     match   = { namespace = [[^(hyprpicker)$]] },
     no_anim = true,
 })
+
+hl.layer_rule({
+    name    = "disable-slurp-anim",
+    match   = { namespace = "selection" },
+    no_anim = true,
+})
+

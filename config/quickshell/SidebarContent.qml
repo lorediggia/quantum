@@ -25,15 +25,6 @@ Item {
     signal requestHide()
     signal requestPowerCycle()
 
-    function colorForRole(role) {
-        switch (role) {
-            case "warm":   return themeWarm
-            case "fresh":  return themeFresh
-            case "accent": return themeAccent
-        }
-        return themeSecond
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 28
@@ -50,7 +41,7 @@ Item {
                 id: clockT
                 Layout.alignment: Qt.AlignLeft
                 Layout.leftMargin: -6
-                color: themeAccent
+                color: themeFg
                 font { family: "JetBrainsMono Nerd Font"; pixelSize: 72; weight: Font.ExtraLight }
                 Component.onCompleted: text = Qt.formatTime(new Date(), "hh:mm")
                 Timer {
@@ -68,13 +59,13 @@ Item {
 
                 Text {
                     text: Qt.formatDate(new Date(), "dddd, d MMMM").toUpperCase()
-                    color: themeSecond
+                    color: themeFg
                     opacity: 0.8
                     font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: Font.Medium; letterSpacing: 0.2 }
                 }
                 Text {
                     text: batteryIcon + " " + batteryPercent
-                    color: themeSecond
+                    color: themeFg
                     font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: Font.Bold }
                 }
             }
@@ -110,7 +101,7 @@ Item {
                         model: buttonModel
                         delegate: IconButton {
                             icon:   model.icon
-                            tint:   colorForRole(model.color_role)
+                            tint:   themeAccent
                             baseFg: themeFg
                             onActivated: {
                                 switch (model.action) {
@@ -171,18 +162,14 @@ Item {
                                 }
                             }
 
+                            readonly property string artUrl: (hasPlayer && activePlayer.trackArtUrl) ? activePlayer.trackArtUrl : ""
+
                             Rectangle {
                                 anchors.fill: parent
                                 gradient: Gradient {
                                     orientation: Gradient.Vertical
-                                    GradientStop {
-                                        position: 0.0
-                                        color: Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.22)
-                                    }
-                                    GradientStop {
-                                        position: 1.0
-                                        color: Qt.rgba(themeSecond.r, themeSecond.g, themeSecond.b, 0.08)
-                                    }
+                                    GradientStop { position: 0.0; color: Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.22) }
+                                    GradientStop { position: 1.0; color: Qt.rgba(themeSecond.r, themeSecond.g, themeSecond.b, 0.08) }
                                 }
                             }
 
@@ -190,10 +177,7 @@ Item {
                                 id: oldImg
                                 anchors.fill: parent
                                 fillMode: Image.PreserveAspectCrop
-                                smooth: true
-                                cache: false
-                                mipmap: false
-                                asynchronous: true
+                                smooth: true; cache: true; asynchronous: true
                                 sourceSize: Qt.size(170, 170)
                             }
 
@@ -201,50 +185,31 @@ Item {
                                 id: artImg
                                 anchors.fill: parent
                                 fillMode: Image.PreserveAspectCrop
-                                smooth: true
-                                cache: false
-                                mipmap: false
-                                asynchronous: true
+                                smooth: true; cache: true; asynchronous: true
                                 sourceSize: Qt.size(170, 170)
                                 opacity: 0
 
                                 onStatusChanged: {
                                     if (status === Image.Ready) fadeInAnim.restart()
                                 }
+
+                                NumberAnimation {
+                                    id: fadeInAnim
+                                    target: artImg; property: "opacity"
+                                    from: 0; to: 1; duration: 700; easing.type: Easing.OutCubic
+                                }
                             }
-                        }
 
-                        NumberAnimation {
-                            id: fadeInAnim
-                            target: artImg
-                            property: "opacity"
-                            from: 0
-                            to: 1
-                            duration: 700
-                            easing.type: Easing.OutCubic
-                        }
-
-                        function refreshArt() {
-                            if (!hasPlayer) return
-                            const url = activePlayer.trackArtUrl ?? ""
-                            if (url === "" || url === artImg.source.toString()) return
-
-                            if (artImg.status === Image.Ready && artImg.source.toString() !== "") {
-                                oldImg.source = artImg.source
+                            onArtUrlChanged: {
+                                if (artUrl === artImg.source.toString()) return
+                                if (artImg.status === Image.Ready && artImg.source.toString() !== "")
+                                    oldImg.source = artImg.source
+                                artImg.opacity = 0
+                                artImg.source = artUrl
                             }
-                            fadeInAnim.stop()
-                            artImg.opacity = 0
-                            artImg.source = url
-                        }
 
-                        Connections {
-                            target: activePlayer
-                            enabled: hasPlayer
-                            function onTrackTitleChanged()  { artContainer.refreshArt() }
-                            function onTrackArtUrlChanged() { artContainer.refreshArt() }
+                            Component.onCompleted: artImg.source = artUrl
                         }
-
-                        Component.onCompleted: refreshArt()
                     }
 
                     // title
@@ -272,131 +237,19 @@ Item {
                 }
 
                 // progress bar
-                Item {
-                    id: progressItem
+                SeekBar {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 24
-
-                    property bool isDragging: false
-                    property real dragProgress: 0
-                    property real currentPos: activePlayer ? activePlayer.position : 0
-
-                    property real progress: {
-                        if (!activePlayer || activePlayer.length <= 0) return 0
-                        if (isDragging) return dragProgress
-                        return currentPos / activePlayer.length
-                    }
-
-                    readonly property bool hovered: progressMouse.containsMouse || isDragging
-                    readonly property real thumbX: track.width * Math.max(0.0, Math.min(1.0, progress))
-
-                    Timer {
-                        interval: 500; repeat: true
-                        running: isPlaying && sidebarContentRoot.visible && !progressItem.isDragging
-                        onTriggered: if (activePlayer) progressItem.currentPos = activePlayer.position
-                    }
-
-                    // track
-                    Rectangle {
-                        id: track
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        height: 4
-                        radius: 2
-                        color: Qt.rgba(themeFg.r, themeFg.g, themeFg.b, progressItem.hovered ? 0.18 : 0.10)
-
-                        Behavior on color { ColorAnimation { duration: 260; easing.type: Easing.OutCubic } }
-
-                        Rectangle {
-                            id: fill
-                            width: parent.width * Math.max(0.0, Math.min(1.0, progressItem.progress))
-                            height: parent.height
-                            radius: parent.radius
-                            color: themeAccent
-
-                            Behavior on width {
-                                enabled: !progressItem.isDragging
-                                NumberAnimation { duration: 280; easing.type: Easing.OutCubic }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        x: progressItem.thumbX - width / 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 22
-                        height: 22
-                        radius: width / 2
-                        color: Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.20)
-
-                        opacity: progressItem.hovered ? 1 : 0
-                        scale:   progressItem.hovered ? 1 : 0.3
-
-                        Behavior on opacity { NumberAnimation { duration: 260 } }
-                        Behavior on scale   { NumberAnimation { duration: 320; easing.type: Easing.OutBack } }
-                        Behavior on x {
-                            enabled: !progressItem.isDragging
-                            NumberAnimation { duration: 280; easing.type: Easing.OutCubic }
-                        }
-                    }
-
-                    // thumb 
-                    Rectangle {
-                        x: progressItem.thumbX - width / 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 11
-                        height: 11
-                        radius: width / 2
-                        color: themeAccent
-
-                        opacity: progressItem.hovered ? 1 : 0
-                        scale: progressMouse.pressed
-                            ? 0.85
-                            : (progressItem.hovered ? 1 : 0.3)
-
-                        Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-                        Behavior on scale   { NumberAnimation { duration: 240; easing.type: Easing.OutBack } }
-                        Behavior on x {
-                            enabled: !progressItem.isDragging
-                            NumberAnimation { duration: 280; easing.type: Easing.OutCubic }
-                        }
-                    }
-
-                    MouseArea {
-                        id: progressMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        
-                        function updateDrag(mouseX) {
-                            progressItem.dragProgress = Math.max(0.0, Math.min(1.0, mouseX / width))
-                        }
-
-                        onPressed: (mouse) => {
-                            progressItem.isDragging = true
-                            updateDrag(mouse.x)
-                        }
-                        
-                        onPositionChanged: (mouse) => {
-                            if (progressItem.isDragging) {
-                                updateDrag(mouse.x)
-                            }
-                        }
-                        
-                        onReleased: (mouse) => {
-                            if (progressItem.isDragging) {
-                                updateDrag(mouse.x)
-                                if (activePlayer && activePlayer.length > 0) {
-                                    let targetPos = progressItem.dragProgress * activePlayer.length
-                                    activePlayer.position = targetPos
-                                    progressItem.currentPos = targetPos // Forza l'aggiornamento grafico se in pausa
-                                }
-                                progressItem.isDragging = false
-                            }
-                        }
-                    }
+                    player:  activePlayer
+                    playing: sidebarContentRoot.isPlaying && sidebarContentRoot.visible
+                    fg:      themeFg
+                    accent:  themeAccent
+                    trackHeight: 4
+                    thumbSize:   11
+                    haloSize:    22
+                    updateInterval: 500
                 }
+
                 // playback
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter

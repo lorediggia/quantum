@@ -4,15 +4,17 @@ if not ok or type(palette) ~= "table" then palette = {} end
 
 hl.config({
     general = {
-        gaps_in     = 5,
-        gaps_out    = 10,
+        gaps_in     = 6,
+        gaps_out    = 14,
         border_size = 2,
 
         col = {
             active_border = {
                 colors = {
                     palette.color4 or "rgb(7aa2f7)",
-                    palette.color2 or "rgb(9ece6a)",
+                    palette.color6 or "rgb(7dcfff)",
+                    palette.color5 or "rgb(bb9af7)",
+                    palette.color4 or "rgb(7aa2f7)", 
                 },
                 angle = 45,
             },

@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Services.Mpris
 
 PanelWindow {
     id: topbarWindow
@@ -25,21 +26,44 @@ PanelWindow {
     property string networkIcon:  "󰖪"
     property string bluetoothIcon: "󰂲"
     property bool   bluetoothOn:   false
+    property string activeAppName: ""
+
+    readonly property var mprisList:
+        (typeof Mpris !== "undefined" && Mpris.players) ? Mpris.players.values : []
+
+    readonly property var activePlayer: {
+        const l = mprisList
+        if (!l || l.length === 0) return null
+        for (const p of l) if (p.isPlaying) return p
+        for (const p of l) if ((("" + (p.identity || "")).toLowerCase()).indexOf("spotify") !== -1) return p
+        return l[0]
+    }
+
+    readonly property bool hasPlayer:       activePlayer !== null && activePlayer !== undefined
+    readonly property bool playerIsPlaying: hasPlayer && activePlayer.isPlaying
 
     function show()   { visible = true }
     function hide()   { visible = false }
     function toggle() { visible = !visible }
 
-    function hyprDispatch(dispatcher, arg) {
-        hyprProc.command = arg !== undefined
-            ? ["hyprctl", "dispatch", dispatcher, arg]
-            : ["hyprctl", "dispatch", dispatcher]
-        hyprProc.running = true
-    }
-
     function spawn(args) {
         cmdProc.command = args
         cmdProc.running = true
+    }
+
+    function batIcon(cap, charging) {
+        if (charging) return "󰂄"
+        if (cap >= 95) return "󰁹"
+        if (cap >= 85) return "󰂂"
+        if (cap >= 75) return "󰂁"
+        if (cap >= 65) return "󰂀"
+        if (cap >= 55) return "󰁿"
+        if (cap >= 45) return "󰁾"
+        if (cap >= 35) return "󰁽"
+        if (cap >= 25) return "󰁼"
+        if (cap >= 15) return "󰁻"
+        if (cap >= 5)  return "󰁺"
+        return "󰂎"
     }
 
     WlrLayershell.namespace:     "quickshell-topbar"
@@ -47,13 +71,35 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     anchors { top: true; left: true; right: true }
-    margins { top: 10; left: 10; right: 10 }
+    margins { top: 14; left: 14; right: 14 }
     implicitHeight: 50
     visible: false
     color: "transparent"
 
-    Process { id: hyprProc; running: false }
-    Process { id: cmdProc;  running: false }
+    Process { id: cmdProc; running: false }
+
+    Process {
+        id: activeWinProc
+        command: ["sh", "-c", "hyprctl activewindow -j | tr -d '\\n'"]
+        property string buf: ""
+        stdout: SplitParser { onRead: (d) => activeWinProc.buf += d }
+        onExited: {
+            const raw = activeWinProc.buf
+            activeWinProc.buf = ""
+            const m = raw.match(/"class"\s*:\s*"([^"]*)"/)
+            const cls = m ? m[1].trim() : ""
+            topbarWindow.activeAppName = cls === ""
+                ? "" : cls.charAt(0).toUpperCase() + cls.slice(1)
+        }
+    }
+
+    Timer {
+        interval: 1000
+        running: topbarWindow.visible
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: activeWinProc.running = true
+    }
 
     Process {
         id: statsProc
@@ -62,7 +108,8 @@ PanelWindow {
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
             "net=$(nmcli -t -f STATE general 2>/dev/null);" +
             "bt=$(bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}');" +
-            "echo \"$mem|$vol|$net|$bt\""
+            "bat=''; for b in /sys/class/power_supply/BAT*; do if [ -d \"$b\" ]; then bat=\"$(cat $b/capacity 2>/dev/null):$(cat $b/status 2>/dev/null)\"; break; fi; done;" +
+            "echo \"$mem|$vol|$net|$bt|$bat\""
         ]
         property string buffer: ""
         stdout: SplitParser { onRead: (d) => statsProc.buffer += d }
@@ -84,6 +131,19 @@ PanelWindow {
             if (p[3] !== undefined) {
                 topbarWindow.bluetoothOn   = p[3].trim() === "yes"
                 topbarWindow.bluetoothIcon = topbarWindow.bluetoothOn ? "󰂯" : "󰂲"
+            }
+            if (p[4] !== undefined && p[4].trim() !== "" && p[4].indexOf(":") !== -1) {
+                const seg = p[4].trim().split(":")
+                const cap = parseInt(seg[0])
+                const st  = (seg[1] || "").trim()
+                if (!isNaN(cap)) {
+                    topbarWindow.batteryPercent = cap + "%"
+                    topbarWindow.batteryIcon = topbarWindow.batIcon(cap, st === "Charging")
+                } else {
+                    topbarWindow.batteryPercent = ""
+                }
+            } else {
+                topbarWindow.batteryPercent = ""
             }
         }
     }
@@ -218,8 +278,40 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Hyprland.dispatch('hl.dsp.focus({ workspace = ' + (index + 1) + ' })')
+                            onClicked: Hyprland.dispatch(`hl.dsp.focus({ workspace = ${index + 1} })`)
                         }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            id: activeWinPill
+            anchors.left: workspacesArea.right
+            anchors.leftMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            height: 36
+            radius: 11
+            width: winRow.width + 24
+
+            color: Qt.rgba(1, 1, 1, 0.015)
+
+            Row {
+                id: winRow
+                anchors.left: parent.left
+                anchors.leftMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 8
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: topbarWindow.activeAppName === "" ? "󰋜" : topbarWindow.activeAppName
+                    color: topbarWindow.activeAppName === "" ? topbarWindow.themeAccent : topbarWindow.themeFg
+                    font {
+                        family: "JetBrainsMono Nerd Font"
+                        pixelSize: topbarWindow.activeAppName === "" ? 15 : 11
+                        weight: Font.Medium
+                        letterSpacing: 0.3
                     }
                 }
             }
@@ -236,7 +328,7 @@ PanelWindow {
                 id: clockTime
                 Layout.alignment: Qt.AlignHCenter
                 text: Qt.formatTime(new Date(), "hh:mm")
-                color: topbarWindow.themeAccent
+                color: topbarWindow.themeFg
                 font { family: "JetBrainsMono Nerd Font"; pixelSize: 19; weight: Font.Light; letterSpacing: 1.2 }
                 Timer {
                     interval: 10000
@@ -258,14 +350,31 @@ PanelWindow {
                 id: clockDate
                 Layout.alignment: Qt.AlignHCenter
                 text: Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
-                color: topbarWindow.themeSecond
+                color: topbarWindow.themeFg
                 opacity: 0.6
                 font { family: "JetBrainsMono Nerd Font"; pixelSize: 8; letterSpacing: 0.8; weight: Font.Medium }
             }
         }
 
+        // media player 
+        MediaPill {
+            id: mediaPill
+            anchors.right: statsRow.left
+            anchors.rightMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            height: 38
+            activePlayer: topbarWindow.activePlayer
+            hasPlayer:    topbarWindow.hasPlayer
+            isPlaying:    topbarWindow.playerIsPlaying
+
+            themeFg:     topbarWindow.themeFg
+            themeAccent: topbarWindow.themeAccent
+            themeSecond: topbarWindow.themeSecond
+        }
+
         // stats
         Row {
+            id: statsRow
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             anchors.rightMargin: 12
@@ -274,7 +383,7 @@ PanelWindow {
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: "󰍛"; value: topbarWindow.ramUsage
-                tint: topbarWindow.themeFresh; baseFg: topbarWindow.themeFg
+                tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
@@ -285,22 +394,31 @@ PanelWindow {
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: topbarWindow.networkIcon
-                tint: topbarWindow.themeSecond; baseFg: topbarWindow.themeFg
+                tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
                 onActivated: topbarWindow.spawn(["kitty", "nmtui"])
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: topbarWindow.bluetoothIcon
-                tint: topbarWindow.bluetoothOn ? topbarWindow.themeAccent : topbarWindow.themeSecond
+                tint: topbarWindow.themeAccent
                 baseFg: topbarWindow.themeFg
                 onActivated: topbarWindow.spawn(["blueman-manager"])
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: topbarWindow.batteryIcon
-                value: topbarWindow.batteryPercent === "AC" ? "" : topbarWindow.batteryPercent
+                value: topbarWindow.batteryPercent
                 tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
-                visible: topbarWindow.batteryPercent !== ""
+            }
+            PowerPill {
+                themeFg:     topbarWindow.themeFg
+                themeAccent: topbarWindow.themeAccent
+                themeSecond: topbarWindow.themeSecond
+                themeWarm:   topbarWindow.themeWarm
+                themeFresh:  topbarWindow.themeFresh
+                onPoweroff: topbarWindow.spawn(["systemctl", "poweroff"])
+                onReboot:   topbarWindow.spawn(["systemctl", "reboot"])
+                onSuspend:  topbarWindow.spawn(["systemctl", "suspend"])
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15

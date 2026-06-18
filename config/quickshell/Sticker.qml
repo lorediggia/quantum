@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 
 Item {
     id: stickerRoot
@@ -24,13 +25,13 @@ Item {
     signal updateRotation(int idx, real newRot)
     signal updateIsNew(int idx, bool val)
 
-    readonly property real maxSize:  120
-    readonly property real naturalW: stickerImage.implicitWidth  > 0 ? stickerImage.implicitWidth  : maxSize
-    readonly property real naturalH: stickerImage.implicitHeight > 0 ? stickerImage.implicitHeight : maxSize
-    readonly property real capScale: Math.min(1.0, maxSize / Math.max(naturalW, naturalH))
+    readonly property real dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
 
-    width:  naturalW * capScale * stickerScale
-    height: naturalH * capScale * stickerScale
+    readonly property real naturalW: (stickerImage.implicitWidth  > 0 ? stickerImage.implicitWidth  : 100) / dpr
+    readonly property real naturalH: (stickerImage.implicitHeight > 0 ? stickerImage.implicitHeight : 100) / dpr
+
+    width:  naturalW * stickerScale
+    height: naturalH * stickerScale
     x: posX; y: posY; z: stickerZ
     rotation: baseRot + idleWobble
 
@@ -215,10 +216,13 @@ Item {
             smooth: true
             mipmap: false
             cache:  true
-            sourceSize: Qt.size(128, 128)
 
             onStatusChanged: {
                 if (status === Image.Ready && isNew && !spawnAnim.running) spawnAnim.start()
+            }
+
+            Component.onCompleted: {
+                if (isNew && status === Image.Ready && !spawnAnim.running) spawnAnim.start()
             }
         }
     }

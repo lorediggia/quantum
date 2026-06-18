@@ -1,6 +1,0 @@
-* {
-    background: #{{background | strip}};
-    foreground: #{{foreground | strip}};
-    color6: #{{color6 | strip}};
-    color8: #{{color8 | strip}};
-}

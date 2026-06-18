@@ -1,7 +1,6 @@
-[opts]
-backend = "kmeans"
-color_space = "lch"
-palette = "dark16"
+backend = "wal"
+color_space = "lab"
+threshold = 17
 
 [templates.quickshell-json]
 template = "colors.json.template"
@@ -15,10 +14,11 @@ target = "~/.cache/wal/colors-hyprland.lua"
 template = "colors-kitty.conf.template"
 target = "~/.cache/wal/colors-kitty.conf"
 
+[templates.hyprlock]
+template = "colors-hyprlock.conf.template"
+target = "~/.cache/wal/colors-hyprlock.conf"
+
 [templates.json]
 template = "colors.json.template"
 target = "~/.cache/wal/colors.json"
 
-[templates.rofi]
-template = "colors-rofi.rasi.template"
-target = "~/.cache/wal/colors-rofi.rasi"

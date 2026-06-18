@@ -1,0 +1,6 @@
+$wallpaper = {{wallpaper}}
+$background = rgb({{background | strip}})
+$foreground = rgb({{foreground | strip}})
+$accent = rgb({{color4 | strip}})
+$accent2 = rgb({{color2 | strip}})
+$warn = rgb({{color1 | strip}})

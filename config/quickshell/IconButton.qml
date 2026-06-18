@@ -22,10 +22,10 @@ Item {
     signal activated()
 
     function fgColor() {
-        if (root.active || btnMouse.pressed) return root.baseFg
-        return btnMouse.containsMouse
-            ? root.tint
-            : Qt.rgba(root.baseFg.r, root.baseFg.g, root.baseFg.b, 0.75)
+        if (root.active) return root.tint
+        if (btnMouse.pressed) return Qt.rgba(root.tint.r, root.tint.g, root.tint.b, 0.7)
+        if (btnMouse.containsMouse) return root.tint
+        return Qt.rgba(root.baseFg.r, root.baseFg.g, root.baseFg.b, 0.6)
     }
 
     implicitWidth:  (value === "") ? boxSize : content.implicitWidth + hPadding
@@ -41,9 +41,6 @@ Item {
         isPressed:    btnMouse.pressed
         drawActiveBg: root.drawActiveBg
 
-        scale: btnMouse.pressed ? 0.95 : 1.0
-        Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
         RowLayout {
             id: content
             anchors.centerIn: parent
@@ -57,7 +54,7 @@ Item {
                     pixelSize: root.iconSize
                     weight:    root.active ? Font.Bold : Font.Medium
                 }
-                Behavior on color { ColorAnimation { duration: 220 } }
+                Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
             }
 
             Text {
@@ -69,7 +66,7 @@ Item {
                     pixelSize: root.valueSize
                     weight:    Font.Medium
                 }
-                Behavior on color { ColorAnimation { duration: 220 } }
+                Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
             }
         }
 

@@ -1,5 +1,3 @@
--- quantum ✦ hyprland.lua
-
 local home = os.getenv("HOME")
 
 require("env")

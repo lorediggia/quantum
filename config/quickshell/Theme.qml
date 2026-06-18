@@ -21,16 +21,9 @@ Item {
         color: {
             if (root.isActive && root.drawActiveBg)
                 return Qt.rgba(root.tintColor.r, root.tintColor.g, root.tintColor.b, 0.18)
-            if (root.isPressed) return Qt.rgba(1, 1, 1, 0.09)
-            if (root.isHovered) return Qt.rgba(1, 1, 1, 0.05)
             return Qt.rgba(1, 1, 1, root.style === "panel" ? 0.025 : 0.015)
         }
-        border.width: 1
-        border.color: root.isActive
-            ? Qt.rgba(root.tintColor.r, root.tintColor.g, root.tintColor.b, 0.40)
-            : (root.isHovered ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08))
-
-        Behavior on color        { ColorAnimation { duration: 280; easing.type: Easing.OutCubic } }
-        Behavior on border.color { ColorAnimation { duration: 280; easing.type: Easing.OutCubic } }
+        border.width: 0
+        Behavior on color { ColorAnimation { duration: 280; easing.type: Easing.OutCubic } }
     }
 }

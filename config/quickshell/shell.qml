@@ -8,7 +8,6 @@ import Quickshell.Services.Mpris
 ShellRoot {
     id: root
 
-    // palette
     property color themeFg:     "#ffffff"
     property color themeBg:     "#66000000"
     property color themeRawBg:  "#000000"
@@ -17,12 +16,11 @@ ShellRoot {
     property color themeWarm:   "#ffffff"
     property color themeFresh:  "#ffffff"
 
-    // state
     property int  highestZ:     0
     property var  stickerSizes: ({})
     property bool isRestoring:  false
+    property bool savePending: false
 
-    // battery
     property string batteryPercent: ""
     property string batteryIcon:    "󰁹"
 
@@ -51,6 +49,8 @@ ShellRoot {
     }
 
     function saveStickers() {
+        if (saveProc.running) { root.savePending = true; return }
+
         const data = { sizes: stickerSizes, stickers: [] }
         for (let i = 0; i < stickerModel.count; i++) {
             const it = stickerModel.get(i)
@@ -141,9 +141,16 @@ ShellRoot {
         }
     }
 
-    // sticker persistence
     Timer { id: saveDebounce; interval: 200; onTriggered: root.saveStickers() }
-    Process { id: saveProc }
+    Process {
+        id: saveProc
+        onRunningChanged: {
+            if (!running && root.savePending) {
+                root.savePending = false
+                root.saveStickers()
+            }
+        }
+    }
     Process {
         id: loadStickersProc
         command: ["sh", "-c", "sticker-load 2>/dev/null || cat ~/.cache/sidebar_stickers.json 2>/dev/null || echo ''"]
@@ -197,11 +204,10 @@ ShellRoot {
     }
     IpcHandler {
         target: "topbar"
-        function show()   { topbarLoader.active = true;  if (topbarLoader.item) topbarLoader.item.show() }
-        function hide()   { topbarLoader.active = false }
+        function show()   { if (topbarLoader.item) topbarLoader.item.visible = true }
+        function hide()   { if (topbarLoader.item) topbarLoader.item.visible = false }
         function toggle() {
-            if (topbarLoader.active) topbarLoader.active = false
-            else { topbarLoader.active = true; topbarLoader.item.show() }
+            if (topbarLoader.item) topbarLoader.item.visible = !topbarLoader.item.visible
         }
     }
     IpcHandler {
@@ -209,17 +215,12 @@ ShellRoot {
         function show()   { wallPickerLoader.active = true; if (wallPickerLoader.item) wallPickerLoader.item.show() }
         function hide()   { wallPickerLoader.active = false }
         function toggle() {
-            if (wallPickerLoader.active) wallPickerLoader.active = false
-            else { wallPickerLoader.active = true; wallPickerLoader.item.show() }
-        }
-    }
-    IpcHandler {
-        target: "keybinds"
-        function show()   { keybindsLoader.active = true; if (keybindsLoader.item) keybindsLoader.item.show() }
-        function hide()   { keybindsLoader.active = false }
-        function toggle() {
-            if (keybindsLoader.active) keybindsLoader.active = false
-            else { keybindsLoader.active = true; keybindsLoader.item.show() }
+            if (wallPickerLoader.active && wallPickerLoader.item && wallPickerLoader.item.visible) {
+                wallPickerLoader.active = false
+            } else {
+                wallPickerLoader.active = true
+                wallPickerLoader.item.show()
+            }
         }
     }
     IpcHandler {
@@ -227,8 +228,12 @@ ShellRoot {
         function show()   { launcherLoader.active = true; if (launcherLoader.item) launcherLoader.item.show() }
         function hide()   { launcherLoader.active = false }
         function toggle() {
-            if (launcherLoader.active) launcherLoader.active = false
-            else { launcherLoader.active = true; launcherLoader.item.show() }
+            if (launcherLoader.active && launcherLoader.item && launcherLoader.item.visible) {
+                launcherLoader.active = false
+            } else {
+                launcherLoader.active = true
+                launcherLoader.item.show()
+            }
         }
     }
 
@@ -241,14 +246,10 @@ ShellRoot {
         ListElement { icon: "󰖩"; color_role: "accent"; action: "cmd";           cmd0: "kitty";           cmd1: "nmtui" }
         ListElement { icon: "󰊴"; color_role: "second"; action: "cmd";           cmd0: "gamemode";        cmd1: "" }
         ListElement { icon: "󰏘"; color_role: "accent"; action: "cmd";           cmd0: "picker";          cmd1: "" }
-        ListElement { icon: "󰒲"; color_role: "second"; action: "cmd";           cmd0: "systemctl";       cmd1: "suspend" }
-        ListElement { icon: "󰍃"; color_role: "accent"; action: "cmd";           cmd0: "hyprctl";         cmd1: "dispatch exit" }
-        ListElement { icon: "󰜉"; color_role: "second"; action: "cmd";           cmd0: "systemctl";       cmd1: "reboot" }
         ListElement { icon: "󰐥"; color_role: "accent"; action: "cmd";           cmd0: "systemctl";       cmd1: "poweroff" }
         ListElement { icon: "󰗑"; color_role: "warm";   action: "power_profile"; cmd0: "";                cmd1: "" }
         ListElement { icon: "󰄨"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "btop" }
         ListElement { icon: "󰕾"; color_role: "accent"; action: "cmd";           cmd0: "pavucontrol";     cmd1: "" }
-        ListElement { icon: "󰌌"; color_role: "fresh";  action: "ipc";           cmd0: "keybinds";        cmd1: "toggle" }
     }
 
     ListModel { id: stickerModel }
@@ -259,8 +260,9 @@ ShellRoot {
         WlrLayershell.namespace:     "quickshell-sidebar"
         WlrLayershell.layer:         WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        //exclusiveZone: 0
         anchors { top: true; bottom: true; right: true }
-        margins { top: 10; bottom: 10; right: 10 }
+        margins { top: 14; bottom: 14; right: 14 }
         implicitWidth: 360
         visible: false
         color: "transparent"
@@ -334,7 +336,7 @@ ShellRoot {
 
     Loader {
         id: topbarLoader
-        active: false
+        active: true
         sourceComponent: Component {
             Topbar {
                 themeFg:        root.themeFg
@@ -349,7 +351,6 @@ ShellRoot {
             }
         }
     }
-
     Loader {
         id: wallPickerLoader
         active: false
@@ -359,20 +360,6 @@ ShellRoot {
                 themeFg:     root.themeFg
                 themeRawBg:  root.themeRawBg
                 themeBg:     root.themeBg
-            }
-        }
-    }
-
-    Loader {
-        id: keybindsLoader
-        active: false
-        sourceComponent: Component {
-            KeybindsWindow {
-                themeBg:     root.themeBg
-                themeFg:     root.themeFg
-                themeAccent: root.themeAccent
-                themeSecond: root.themeSecond
-                themeWarm:   root.themeWarm
             }
         }
     }

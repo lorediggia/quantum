@@ -7,7 +7,6 @@ import Quickshell.Wayland
 PanelWindow {
     id: launcherWin
 
-
     property var allApps: []
 
     property color themeBg
@@ -17,11 +16,9 @@ PanelWindow {
 
     readonly property color textMain: Qt.rgba(themeFg.r, themeFg.g, themeFg.b, 0.95)
     readonly property color textDim:  Qt.rgba(themeFg.r, themeFg.g, themeFg.b, 0.40)
-    readonly property color selBg:    Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.12)
-    readonly property color selBd:    themeAccent
+    readonly property color selBg:    Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.15)
 
     property string query: ""
-    property int selectedIdx: 0
 
     readonly property var filteredApps: {
         if (query === "") return allApps
@@ -41,9 +38,10 @@ PanelWindow {
     function show() {
         visible = true
         searchInput.text = ""
-        selectedIdx = 0
+        appList.currentIndex = 0
         Qt.callLater(() => searchInput.forceActiveFocus())
     }
+    
     function hide()   { visible = false }
     function toggle() { visible ? hide() : show() }
 
@@ -58,8 +56,8 @@ PanelWindow {
     function moveSel(delta) {
         const n = filteredApps.length
         if (n === 0) return
-        selectedIdx = Math.max(0, Math.min(n - 1, selectedIdx + delta))
-        appList.positionViewAtIndex(selectedIdx, ListView.Contain)
+        appList.currentIndex = Math.max(0, Math.min(n - 1, appList.currentIndex + delta))
+        appList.positionViewAtIndex(appList.currentIndex, ListView.Contain)
     }
 
     Process { id: spawnProc }
@@ -68,8 +66,7 @@ PanelWindow {
         anchors.fill: parent
         radius: 16
         color: launcherWin.themeBg
-        border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.05)
+        border.width: 0
         clip: true
 
         ColumnLayout {
@@ -84,8 +81,11 @@ PanelWindow {
                 Rectangle {
                     anchors.fill: parent
                     radius: 10
-                    color: searchInput.activeFocus ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.02)
+                    color: searchInput.activeFocus ? Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.08) : "transparent"
+                    border.width: 1
+                    border.color: searchInput.activeFocus ? Qt.rgba(themeAccent.r, themeAccent.g, themeAccent.b, 0.3) : Qt.rgba(themeFg.r, themeFg.g, themeFg.b, 0.1)
                     Behavior on color { ColorAnimation { duration: 200 } }
+                    Behavior on border.color { ColorAnimation { duration: 200 } }
                 }
 
                 RowLayout {
@@ -110,9 +110,9 @@ PanelWindow {
                         selectByMouse: true
                         clip: true
                         selectionColor: selBg
-                        selectedTextColor: launcherWin.themeAccent
+                        selectedTextColor: textMain
 
-                        onTextChanged: { launcherWin.query = text; launcherWin.selectedIdx = 0 }
+                        onTextChanged: { launcherWin.query = text; appList.currentIndex = 0 }
 
                         Keys.onDownPressed:   moveSel(1)
                         Keys.onUpPressed:     moveSel(-1)
@@ -120,8 +120,8 @@ PanelWindow {
                             if      (event.key === Qt.Key_PageDown) { moveSel(6);  event.accepted = true }
                             else if (event.key === Qt.Key_PageUp)   { moveSel(-6); event.accepted = true }
                         }
-                        Keys.onReturnPressed: launcherWin.launch(selectedIdx)
-                        Keys.onEnterPressed:  launcherWin.launch(selectedIdx)
+                        Keys.onReturnPressed: launcherWin.launch(appList.currentIndex)
+                        Keys.onEnterPressed:  launcherWin.launch(appList.currentIndex)
                         Keys.onEscapePressed: launcherWin.hide()
 
                         Text {
@@ -133,16 +133,6 @@ PanelWindow {
                             font: searchInput.font
                         }
                     }
-                }
-
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    height: 2
-                    width: searchInput.activeFocus ? parent.width - 24 : 0
-                    color: launcherWin.themeAccent
-                    radius: 1
-                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                 }
             }
 
@@ -158,41 +148,37 @@ PanelWindow {
                 pixelAligned: true
                 cacheBuffer: 300
 
-                delegate: Item {
-                    width: ListView.view.width
-                    height: 36
-
-                    readonly property bool isSel: index === launcherWin.selectedIdx
-
+                currentIndex: 0
+                highlightMoveDuration: 250
+                highlightFollowsCurrentItem: true
+                
+                highlight: Item {
+                    z: 0
                     Rectangle {
                         anchors.fill: parent
-                        radius: 8
-                        color: isSel ? selBg : (rowHover.hovered ? Qt.rgba(1, 1, 1, 0.03) : "transparent")
-                        Behavior on color { ColorAnimation { duration: 150 } }
+                        radius: 10
+                        color: selBg
                     }
+                }
 
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: 4
-                        width: 3
-                        height: isSel ? 18 : 0
-                        radius: 2
-                        color: selBd
-                        Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
-                    }
+                delegate: Item {
+                    width: ListView.view.width
+                    height: 38
 
-                    HoverHandler { id: rowHover }
-                    TapHandler { onTapped: { launcherWin.selectedIdx = index; launcherWin.launch(index) } }
+                    readonly property bool isSel: ListView.isCurrentItem
+
+                    TapHandler { onTapped: { appList.currentIndex = index; launcherWin.launch(index) } }
 
                     Text {
                         anchors.fill: parent
-                        anchors { leftMargin: 16; rightMargin: 16 }
+                        anchors.leftMargin: 16
+                        anchors.rightMargin: 16
                         verticalAlignment: Text.AlignVCenter
                         text: modelData.name
-                        color: parent.isSel ? launcherWin.themeAccent : textMain
-                        font { family: "JetBrainsMono Nerd Font"; pixelSize: 13; weight: parent.isSel ? Font.Bold : Font.Normal; letterSpacing: 0.3 }
+                        color: isSel ? textMain : textDim
+                        font { family: "JetBrainsMono Nerd Font"; pixelSize: 13; weight: isSel ? Font.Bold : Font.Medium; letterSpacing: 0.3 }
                         elide: Text.ElideRight
+                        
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
                 }

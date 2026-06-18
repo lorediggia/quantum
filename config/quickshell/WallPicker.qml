@@ -57,7 +57,6 @@ PanelWindow {
     Process { id: applyProc }
 
     function applyWall(path) {
-     
         applyProc.command = [
             "sh", "-c",
             'awww img "$1" --transition-type fade --transition-duration 1.5 && "$HOME/.local/bin/theme-sync" "$1"',
@@ -67,12 +66,11 @@ PanelWindow {
         hide()
     }
 
-Item {
+    Item {
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: root.hide()
 
-        // wallpaper
         Rectangle {
             anchors.fill: parent
             color: root.themeRawBg
@@ -87,13 +85,12 @@ Item {
             visible: false
         }
 
-      Flickable {
+        Flickable {
             anchors.fill: parent
             clip: true
-            contentHeight: grid.implicitHeight 
+            contentHeight: grid.implicitHeight
             flickDeceleration: 2500
             pixelAligned: true
-
 
             layer.enabled: true
             layer.effect: OpacityMask {
@@ -105,26 +102,43 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 columns: 3
                 spacing: 15
-
                 topPadding: 15
                 bottomPadding: 15
 
                 Repeater {
                     model: wallModel
-                    
+
                     Item {
+                        id: wrapper
                         width: 220
                         height: 130
+                        opacity: 0
+
+                        transform: Translate { id: slideTrans; y: 20 }
 
                         scale: thumbMouse.pressed ? 0.96 : (thumbMouse.containsMouse ? 1.04 : 1.0)
                         Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+
+                        Component.onCompleted: introAnim.start()
+
+                        ParallelAnimation {
+                            id: introAnim
+                            SequentialAnimation {
+                                PauseAnimation { duration: index * 35 }
+                                NumberAnimation { target: wrapper; property: "opacity"; to: 1.0; duration: 400; easing.type: Easing.OutCubic }
+                            }
+                            SequentialAnimation {
+                                PauseAnimation { duration: index * 35 }
+                                NumberAnimation { target: slideTrans; property: "y"; to: 0; duration: 500; easing.type: Easing.OutCubic }
+                            }
+                        }
 
                         Image {
                             id: wallImg
                             anchors.fill: parent
                             source: "file://" + path
                             fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
+                            asynchronous: false
                             cache: true
                             sourceSize: Qt.size(440, 260)
                             visible: false
@@ -135,7 +149,6 @@ Item {
                             anchors.fill: parent
                             radius: 14
                             visible: false
-                            layer.enabled: true
                         }
 
                         OpacityMask {
