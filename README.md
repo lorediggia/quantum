@@ -50,52 +50,6 @@ alt="Arch Linux" />
 
 </table>
 
-## ✦ Installation
-
-> Arch Linux and derivatives only. Do not run as root.
-
-```bash
-git clone https://github.com/lorediggia/quantum ~/dotfiles
-cd ~/dotfiles
-chmod +x install.sh
-./install.sh
-```
-  
-The installer opens an interactive TUI menu where you pick exactly what to install. Use arrow keys to navigate, `SPACE` to toggle, `ENTER` to confirm.
-
-A system reboot is required to apply changes.
-
-_Existing configs are safely backed up to `~/.config-backup-YYYYMMDD`._
-
-## ✦ File Structure
-
-Here is an example of how your home directory will look once everything is set up.
-
-```text
-~/dotfiles/
-├── bin/                    → ~/.local/bin  
-├── config/
-│   ├── hypr/               → ~/.config/hypr
-│   ├── quickshell/         → ~/.config/quickshell
-│   ├── kitty/              → ~/.config/kitty
-│   ├── fish/               → ~/.config/fish
-│   ├── starship.toml       → ~/.config/starship.toml
-│   ├── wallust/            → ~/.config/wallust
-│   ├── rofi/               → ~/.config/rofi
-│   └── fastfetch/          → ~/.config/fastfetch
-├── holograph/           
-│   └── Cargo.toml
-├── local/                 
-│   ├── hypr-local.lua      # local configs
-│   └── user-keybinds.lua   # custom keybinds
-├── logo/
-│   ├── img/              
-│   └── holograph/          
-│       └── MyTheme/        # drop .png/.jpg/.webp here
-├── install.sh
-└── uninstall.sh
-```
-
 ## ✦ Keybinds
 
 <table>
@@ -134,9 +88,9 @@ Here is an example of how your home directory will look once everything is set u
 
 <tr>
 
-<td align="right"><kbd>SUPER</kbd> + <kbd>CTRL</kbd> + <kbd>Enter</kbd></td>
+<td align="right"><kbd>SUPER</kbd> + <kbd>TAB</kbd></td>
 
-<td>Open App Launcher <i>(Rofi)</i></td>
+<td>Open App Launcher </td>
 
 </tr>
 
@@ -181,31 +135,3 @@ Holograph is a TUI that organizes your Fastfetch stickers into theme folders, le
 1. Type `holograph` in your terminal.
 2. Use the **arrow keys** to browse through your folders and images.
 3. Press <kbd>Enter</kbd> to **Apply** the theme. Fastfetch updates automatically!
-
-## ✦ Uninstaller
-
-```
-cd ~/dotfiles
-chmod +x uninstall.sh
-./uninstall.sh
-```
-  
-_Removes symlinks, clears caches, uninstalls downloaded packages, and restores your original backups._
-
-## ✦ Update
-
-```
-cd ~/dotfiles
-chmod +x update.sh
-./update.sh
-```
-
-## ✦ Credits
-
-⋄ [WhiteSur GTK](https://github.com/vinceliuice/WhiteSur-gtk-theme)
-
-⋄ [Bibata Cursors](https://github.com/ful1e5/Bibata_Cursor)
-
-⋄ [qallust](https://codeberg.org/explosion-mental/wallust)
-
-⋄ [awww](https://codeberg.org/LGFae/awww)
