@@ -250,6 +250,7 @@ ShellRoot {
         ListElement { icon: "󰗑"; color_role: "warm";   action: "power_profile"; cmd0: "";                cmd1: "" }
         ListElement { icon: "󰄨"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "btop" }
         ListElement { icon: "󰕾"; color_role: "accent"; action: "cmd";           cmd0: "pavucontrol";     cmd1: "" }
+        ListElement { icon: "󰌾"; color_role: "accent"; action: "cmd";           cmd0: "hyprlock";        cmd1: "" }
     }
 
     ListModel { id: stickerModel }

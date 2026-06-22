@@ -14,6 +14,7 @@ hl.bind(m .. " + F",                 hl.dsp.exec_cmd("sh -c 'grim - | wl-copy'")
 hl.bind(m .. " + Z",                 hl.dsp.exec_cmd("topbar"))
 hl.bind(m .. " + K",                 hl.dsp.exec_cmd("keybinds"))
 hl.bind(m .. " + G",                 hl.dsp.exec_cmd([[sh -c 'grim "$HOME/Pictures/$(date +%Y%m%d-%H%M%S).png"']]))
+hl.bind(m .. " + L",                 hl.dsp.exec_cmd("hyprlock"))
 
 -- window
 hl.bind(m .. " + R",         hl.dsp.window.float())
