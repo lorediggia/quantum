@@ -20,10 +20,10 @@ PanelWindow {
     property string batteryPercent: ""
     property string batteryIcon:    "󰁹"
 
-    property string ramUsage:     "—"
-    property string volumeLevel:  "—"
-    property string volumeIcon:   "󰕾"
-    property string networkIcon:  "󰖪"
+    property string ramUsage:      "—"
+    property string volumeLevel:   "—"
+    property string volumeIcon:    "󰕾"
+    property string networkIcon:   "󰖪"
     property string bluetoothIcon: "󰂲"
     property bool   bluetoothOn:   false
     property string activeAppName: ""
@@ -106,10 +106,10 @@ PanelWindow {
         command: ["sh", "-c",
             "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" +
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
-            "net=$(nmcli -t -f STATE general 2>/dev/null);" +
-            "bt=$(bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}');" +
-            "bat=''; for b in /sys/class/power_supply/BAT*; do if [ -d \"$b\" ]; then bat=\"$(cat $b/capacity 2>/dev/null):$(cat $b/status 2>/dev/null)\"; break; fi; done;" +
-            "echo \"$mem|$vol|$net|$bt|$bat\""
+            "net=$(nmcli -t -f STATE general 2>/dev/null | head -1);" +
+            "bt=$(timeout 1 bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}');" +
+            "bat=''; for b in /sys/class/power_supply/BAT*; do [ -d \"$b\" ] || continue; bat=\"$(cat $b/capacity 2>/dev/null):$(cat $b/status 2>/dev/null)\"; break; done;" +
+            "printf '%s|%s|%s|%s|%s\\n' \"$mem\" \"$vol\" \"$net\" \"$bt\" \"$bat\""
         ]
         property string buffer: ""
         stdout: SplitParser { onRead: (d) => statsProc.buffer += d }
@@ -147,6 +147,7 @@ PanelWindow {
             }
         }
     }
+
     Timer {
         interval: 4000
         running: topbarWindow.visible
@@ -161,7 +162,6 @@ PanelWindow {
         color: topbarWindow.themeBg
         clip: true
 
-        // workspaces left
         Item {
             id: workspacesArea
             anchors.left: parent.left
@@ -176,8 +176,9 @@ PanelWindow {
 
             readonly property int activeIdx: {
                 const list = Hyprland.workspaces.values
-                for (let i = 0; i < list.length; i++)
-                    if (list[i].active) return list[i].id - 1
+                for (let i = 0; i < list.length; i++) {
+                    if (list[i].active) return Math.min(list[i].id - 1, 9)
+                }
                 return -1
             }
 
@@ -199,80 +200,49 @@ PanelWindow {
                 radius: activeIndicator.radius + 4
                 color: "transparent"
                 border.width: 1
-                border.color: Qt.rgba(topbarWindow.themeAccent.r,
-                                      topbarWindow.themeAccent.g,
-                                      topbarWindow.themeAccent.b, 0.14)
+                border.color: Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, 0.14)
                 opacity: activeIndicator.opacity * 0.85
             }
 
             Rectangle {
                 id: activeIndicator
-                y: 0
-                height: workspacesArea.boxSize
-                radius: 9
-
+                y: 0; height: workspacesArea.boxSize; radius: 9
                 readonly property real edgeA: motion.fast
                 readonly property real edgeB: motion.slow
-
                 x:     Math.min(edgeA, edgeB)
                 width: Math.abs(edgeA - edgeB) + workspacesArea.boxSize
-
-                color: Qt.rgba(topbarWindow.themeAccent.r,
-                               topbarWindow.themeAccent.g,
-                               topbarWindow.themeAccent.b, 0.22)
+                color: Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, 0.22)
                 border.width: 1
-                border.color: Qt.rgba(topbarWindow.themeAccent.r,
-                                      topbarWindow.themeAccent.g,
-                                      topbarWindow.themeAccent.b, 0.50)
-
+                border.color: Qt.rgba(topbarWindow.themeAccent.r, topbarWindow.themeAccent.g, topbarWindow.themeAccent.b, 0.50)
                 opacity: workspacesArea.activeIdx >= 0 ? 1.0 : 0.0
                 Behavior on opacity { NumberAnimation { duration: 220 } }
                 Behavior on color   { ColorAnimation  { duration: 320 } }
             }
 
-            // nums
             Row {
                 id: wsRow
                 spacing: workspacesArea.boxSpacing
-
                 Repeater {
                     model: 10
                     delegate: Item {
                         id: wsItem
-                        width:  workspacesArea.boxSize
-                        height: workspacesArea.boxSize
-
-                        readonly property var wsObj: Hyprland.workspaces.values
-                            .find(w => w.id === index + 1) || null
+                        width: workspacesArea.boxSize; height: workspacesArea.boxSize
+                        readonly property var wsObj: Hyprland.workspaces.values.find(w => w.id === index + 1) || null
                         readonly property bool isActive: wsObj !== null && wsObj.active
                         readonly property bool isEmpty:  wsObj === null
-
                         opacity: isEmpty ? 0.35 : 1.0
                         Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
-
                         Text {
                             anchors.centerIn: parent
                             text: String(index + 1)
-                            color: wsItem.isActive
-                                ? topbarWindow.themeFg
-                                : (wsMouse.containsMouse
-                                    ? topbarWindow.themeAccent
-                                    : Qt.rgba(topbarWindow.themeFg.r,
-                                              topbarWindow.themeFg.g,
-                                              topbarWindow.themeFg.b, 0.65))
-                            font {
-                                family:    "JetBrainsMono Nerd Font"
-                                pixelSize: 11
-                                weight:    wsItem.isActive ? Font.Bold : Font.Medium
-                            }
-                            scale: wsMouse.pressed
-                                ? 0.82
-                                : (wsItem.isActive ? 1.10 : 1.0)
-
+                            color: wsItem.isActive ? topbarWindow.themeFg
+                                : (wsMouse.containsMouse ? topbarWindow.themeAccent
+                                : Qt.rgba(topbarWindow.themeFg.r, topbarWindow.themeFg.g, topbarWindow.themeFg.b, 0.65))
+                            font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: wsItem.isActive ? Font.Bold : Font.Medium }
+                            scale: wsMouse.pressed ? 0.82 : (wsItem.isActive ? 1.10 : 1.0)
                             Behavior on color { ColorAnimation  { duration: 240 } }
                             Behavior on scale { NumberAnimation { duration: 240; easing.type: Easing.OutBack } }
                         }
-
                         MouseArea {
                             id: wsMouse
                             anchors.fill: parent
@@ -285,45 +255,34 @@ PanelWindow {
             }
         }
 
+        // active window
         Rectangle {
-            id: activeWinPill
             anchors.left: workspacesArea.right
             anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
-            height: 36
-            radius: 11
+            height: 36; radius: 11
             width: winRow.width + 24
-
             color: Qt.rgba(1, 1, 1, 0.015)
-
             Row {
                 id: winRow
                 anchors.left: parent.left
                 anchors.leftMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
-
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: topbarWindow.activeAppName === "" ? "󰋜" : topbarWindow.activeAppName
                     color: topbarWindow.activeAppName === "" ? topbarWindow.themeAccent : topbarWindow.themeFg
-                    font {
-                        family: "JetBrainsMono Nerd Font"
-                        pixelSize: topbarWindow.activeAppName === "" ? 15 : 11
-                        weight: Font.Medium
-                        letterSpacing: 0.3
-                    }
+                    font { family: "JetBrainsMono Nerd Font"; pixelSize: topbarWindow.activeAppName === "" ? 15 : 11; weight: Font.Medium; letterSpacing: 0.3 }
                 }
             }
         }
 
         // clock
         ColumnLayout {
-            id: clockArea
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenter:   parent.verticalCenter
             spacing: -3
-
             Text {
                 id: clockTime
                 Layout.alignment: Qt.AlignHCenter
@@ -331,18 +290,11 @@ PanelWindow {
                 color: topbarWindow.themeFg
                 font { family: "JetBrainsMono Nerd Font"; pixelSize: 19; weight: Font.Light; letterSpacing: 1.2 }
                 Timer {
-                    interval: 10000
-                    running: topbarWindow.visible
-                    repeat: true
-                    triggeredOnStart: true
+                    interval: 10000; running: topbarWindow.visible; repeat: true; triggeredOnStart: true
                     property string last: ""
                     onTriggered: {
                         const t = Qt.formatTime(new Date(), "hh:mm")
-                        if (t !== last) {
-                            clockTime.text = t
-                            clockDate.text = Qt.formatDate(new Date(), "ddd d MMM").toUpperCase()
-                            last = t
-                        }
+                        if (t !== last) { clockTime.text = t; clockDate.text = Qt.formatDate(new Date(), "ddd d MMM").toUpperCase(); last = t }
                     }
                 }
             }
@@ -356,9 +308,7 @@ PanelWindow {
             }
         }
 
-        // media player 
         MediaPill {
-            id: mediaPill
             anchors.right: statsRow.left
             anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter
@@ -366,7 +316,6 @@ PanelWindow {
             activePlayer: topbarWindow.activePlayer
             hasPlayer:    topbarWindow.hasPlayer
             isPlaying:    topbarWindow.playerIsPlaying
-
             themeFg:     topbarWindow.themeFg
             themeAccent: topbarWindow.themeAccent
             themeSecond: topbarWindow.themeSecond
@@ -384,30 +333,29 @@ PanelWindow {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: "󰍛"; value: topbarWindow.ramUsage
                 tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
+                onActivated: topbarWindow.spawn(["kitty", "btop"])
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: topbarWindow.volumeIcon; value: topbarWindow.volumeLevel
                 tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
-                onActivated: topbarWindow.spawn(["pavucontrol"])
+                onActivated: topbarWindow.spawn(["quickshell", "ipc", "call", "audio_panel", "toggle", "[]"])
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: topbarWindow.networkIcon
                 tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
-                onActivated: topbarWindow.spawn(["kitty", "nmtui"])
+                onActivated: topbarWindow.spawn(["quickshell", "ipc", "call", "wifi_panel", "toggle", "[]"])
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
                 icon: topbarWindow.bluetoothIcon
-                tint: topbarWindow.themeAccent
-                baseFg: topbarWindow.themeFg
-                onActivated: topbarWindow.spawn(["blueman-manager"])
+                tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
+                onActivated: topbarWindow.spawn(["quickshell", "ipc", "call", "bt_panel", "toggle", "[]"])
             }
             IconButton {
                 boxSize: 36; boxRadius: 11; iconSize: 15
-                icon: topbarWindow.batteryIcon
-                value: topbarWindow.batteryPercent
+                icon: topbarWindow.batteryIcon; value: topbarWindow.batteryPercent
                 tint: topbarWindow.themeAccent; baseFg: topbarWindow.themeFg
             }
             PowerPill {

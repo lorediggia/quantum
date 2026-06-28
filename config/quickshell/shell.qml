@@ -19,7 +19,7 @@ ShellRoot {
     property int  highestZ:     0
     property var  stickerSizes: ({})
     property bool isRestoring:  false
-    property bool savePending: false
+    property bool savePending:  false
 
     property string batteryPercent: ""
     property string batteryIcon:    "󰁹"
@@ -31,10 +31,74 @@ ShellRoot {
     readonly property var powerIcons:    ["󰌪", "󰗑", "󰓅"]
     property int currentPowerIndex: 1
 
+    // panel
+    property string activePanel: ""
+
+    function panelLoader(name) {
+        switch (name) {
+            case "audio":     return audioPanelLoader
+            case "wifi":      return wifiPanelLoader
+            case "bt":        return btPanelLoader
+            case "launcher":  return launcherLoader
+            case "wallpicker": return wallPickerLoader
+        }
+        return null
+    }
+
+    function closeActivePanel(then) {
+        if (activePanel === "") { if (then) then(); return }
+        const loader = panelLoader(activePanel)
+        activePanel = ""
+        if (loader && loader.active && loader.item) {
+            loader.item.hide()
+            if (then) panelSwitchTimer.schedule(then)
+        } else {
+            if (loader) loader.active = false
+            if (then) then()
+        }
+    }
+
+    function openPanel(name) {
+        if (activePanel === name) {
+            closeActivePanel(null)
+            return
+        }
+        if (activePanel !== "") {
+            const next = name
+            closeActivePanel(() => activatePanel(next))
+        } else {
+            activatePanel(name)
+        }
+    }
+
+    function activatePanel(name) {
+        const loader = panelLoader(name)
+        if (!loader) return
+        activePanel = name
+        loader.active = true
+        Qt.callLater(() => { if (loader.item) loader.item.show() })
+    }
+
+    // timer 
+    Timer {
+        id: panelSwitchTimer
+        interval: 220
+        repeat: false
+        property var callback: null
+        function schedule(cb) { callback = cb; restart() }
+        onTriggered: { if (callback) { callback(); callback = null } }
+    }
+
     function runCmd(cmd)        { cmdProc.command = cmd; cmdProc.running = true }
     function addRandomSticker() { stickerPickerProc.running = true }
     function triggerSave()      { if (!isRestoring) saveDebounce.restart() }
-    function flushSave()        { if (!isRestoring) { saveDebounce.stop(); saveStickers() } }
+
+    function flushSave() {
+        if (!isRestoring) {
+            saveDebounce.stop()
+            saveStickers()
+        }
+    }
 
     function cyclePowerProfile() {
         currentPowerIndex = (currentPowerIndex + 1) % 3
@@ -48,23 +112,40 @@ ShellRoot {
         }
     }
 
-    function saveStickers() {
-        if (saveProc.running) { root.savePending = true; return }
-
+    function buildStickerJson() {
         const data = { sizes: stickerSizes, stickers: [] }
         for (let i = 0; i < stickerModel.count; i++) {
             const it = stickerModel.get(i)
             data.stickers.push({
-                imgSrc: it.imgSrc, posX: it.posX, posY: it.posY,
-                baseRot: it.baseRot, stickerZ: it.stickerZ, stickerScale: it.stickerScale
+                imgSrc:       it.imgSrc,
+                posX:         it.posX,
+                posY:         it.posY,
+                baseRot:      it.baseRot,
+                stickerZ:     it.stickerZ,
+                stickerScale: it.stickerScale
             })
         }
-        const safeJson = JSON.stringify(data).replace(/'/g, "'\\''")
-        saveProc.command = ["sh", "-c",
+        return JSON.stringify(data).replace(/'/g, "'\\''")
+    }
+
+    function writeJson(proc, json) {
+        proc.command = ["sh", "-c",
             "f=~/.cache/sidebar_stickers.json; " +
-            "printf '%s' '" + safeJson + "' > \"$f.tmp\" && mv \"$f.tmp\" \"$f\""
+            "printf '%s' '" + json + "' > \"$f.tmp\" && mv \"$f.tmp\" \"$f\""
         ]
-        saveProc.running = true
+        proc.running = true
+    }
+
+    function saveStickers() {
+        if (saveProc.running) { root.savePending = true; return }
+        writeJson(saveProc, buildStickerJson())
+    }
+
+    function deleteAndSave(idx) {
+        stickerModel.remove(idx)
+        saveDebounce.stop()
+        root.savePending = false
+        writeJson(deleteProc, buildStickerJson())
     }
 
     Component.onCompleted: {
@@ -73,7 +154,7 @@ ShellRoot {
         loadAppsProc.running = true
     }
 
-
+    // theme 
     FileView {
         id: colorFile
         path: Quickshell.env("HOME") + "/.cache/wal/colors.json"
@@ -93,6 +174,22 @@ ShellRoot {
         }
     }
 
+    Repeater {
+        model: [
+            Quickshell.env("HOME") + "/.local/share/applications",
+            "/usr/share/applications",
+            "/usr/local/share/applications",
+            "/var/lib/flatpak/exports/share/applications",
+            Quickshell.env("HOME") + "/.local/share/flatpak/exports/share/applications"
+        ]
+        delegate: FileView {
+            path: modelData
+            watchChanges: true
+            onFileChanged: loadAppsProc.running = true
+        }
+    }
+
+    // process
     Process {
         id: batProc
         command: ["sh", "-c",
@@ -142,6 +239,7 @@ ShellRoot {
     }
 
     Timer { id: saveDebounce; interval: 200; onTriggered: root.saveStickers() }
+
     Process {
         id: saveProc
         onRunningChanged: {
@@ -151,6 +249,9 @@ ShellRoot {
             }
         }
     }
+
+    Process { id: deleteProc }
+
     Process {
         id: loadStickersProc
         command: ["sh", "-c", "sticker-load 2>/dev/null || cat ~/.cache/sidebar_stickers.json 2>/dev/null || echo ''"]
@@ -198,6 +299,7 @@ ShellRoot {
         }
     }
 
+    // IPC 
     IpcHandler {
         target: "sidebar"
         function toggle() { sidebarWindow.visible = !sidebarWindow.visible }
@@ -212,32 +314,24 @@ ShellRoot {
     }
     IpcHandler {
         target: "wall_e"
-        function show()   { wallPickerLoader.active = true; if (wallPickerLoader.item) wallPickerLoader.item.show() }
-        function hide()   { wallPickerLoader.active = false }
-        function toggle() {
-            if (wallPickerLoader.active && wallPickerLoader.item && wallPickerLoader.item.visible) {
-                wallPickerLoader.active = false
-            } else {
-                wallPickerLoader.active = true
-                wallPickerLoader.item.show()
-            }
-        }
+        function toggle() { root.openPanel("wallpicker") }
     }
     IpcHandler {
         target: "launcher"
-        function show()   { launcherLoader.active = true; if (launcherLoader.item) launcherLoader.item.show() }
-        function hide()   { launcherLoader.active = false }
-        function toggle() {
-            if (launcherLoader.active && launcherLoader.item && launcherLoader.item.visible) {
-                launcherLoader.active = false
-            } else {
-                launcherLoader.active = true
-                launcherLoader.item.show()
-            }
-        }
+        function toggle() { root.openPanel("launcher") }
     }
-
-    // sidebar buttons 
+    IpcHandler {
+        target: "audio_panel"
+        function toggle() { root.openPanel("audio") }
+    }
+    IpcHandler {
+        target: "wifi_panel"
+        function toggle() { root.openPanel("wifi") }
+    }
+    IpcHandler {
+        target: "bt_panel"
+        function toggle() { root.openPanel("bt") }
+    }
     ListModel {
         id: buttonModel
         ListElement { icon: "󰚰"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "update" }
@@ -246,22 +340,20 @@ ShellRoot {
         ListElement { icon: "󰖩"; color_role: "accent"; action: "cmd";           cmd0: "kitty";           cmd1: "nmtui" }
         ListElement { icon: "󰊴"; color_role: "second"; action: "cmd";           cmd0: "gamemode";        cmd1: "" }
         ListElement { icon: "󰏘"; color_role: "accent"; action: "cmd";           cmd0: "picker";          cmd1: "" }
+        ListElement { icon: "󰌾"; color_role: "accent"; action: "cmd";           cmd0: "hyprlock";        cmd1: "" }
         ListElement { icon: "󰐥"; color_role: "accent"; action: "cmd";           cmd0: "systemctl";       cmd1: "poweroff" }
         ListElement { icon: "󰗑"; color_role: "warm";   action: "power_profile"; cmd0: "";                cmd1: "" }
         ListElement { icon: "󰄨"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "btop" }
         ListElement { icon: "󰕾"; color_role: "accent"; action: "cmd";           cmd0: "pavucontrol";     cmd1: "" }
-        ListElement { icon: "󰌾"; color_role: "accent"; action: "cmd";           cmd0: "hyprlock";        cmd1: "" }
     }
 
     ListModel { id: stickerModel }
-
 
     PanelWindow {
         id: sidebarWindow
         WlrLayershell.namespace:     "quickshell-sidebar"
         WlrLayershell.layer:         WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-        //exclusiveZone: 0
         anchors { top: true; bottom: true; right: true }
         margins { top: 14; bottom: 14; right: 14 }
         implicitWidth: 360
@@ -321,7 +413,7 @@ ShellRoot {
                         modelIndex:   index
 
                         onRequireSave:                       root.triggerSave()
-                        onRequireDestroy:     (idx) =>       { stickerModel.remove(idx); root.flushSave() }
+                        onRequireDestroy:     (idx) =>       root.deleteAndSave(idx)
                         onRequireZUpdate:     (idx) =>       { root.highestZ += 1; stickerModel.setProperty(idx, "stickerZ", root.highestZ) }
                         onUpdatePosition:     (idx, x, y) => { stickerModel.setProperty(idx, "posX", x); stickerModel.setProperty(idx, "posY", y) }
                         onUpdateScaleAndSave: (idx, p, s) => { stickerModel.setProperty(idx, "stickerScale", s); root.stickerSizes[p] = s }
@@ -332,7 +424,6 @@ ShellRoot {
             }
         }
     }
-
 
 
     Loader {
@@ -352,9 +443,11 @@ ShellRoot {
             }
         }
     }
+
     Loader {
         id: wallPickerLoader
         active: false
+        onActiveChanged: if (!active) root.activePanel = ""
         sourceComponent: Component {
             WallPicker {
                 themeAccent: root.themeAccent
@@ -368,11 +461,72 @@ ShellRoot {
     Loader {
         id: launcherLoader
         active: false
+        onActiveChanged: if (!active) root.activePanel = ""
         sourceComponent: Component {
             Launcher {
                 allApps:     root.allApps
                 themeBg:     root.themeBg
                 themeFg:     root.themeFg
+                themeAccent: root.themeAccent
+                themeSecond: root.themeSecond
+            }
+        }
+    }
+
+    Loader {
+        id: audioPanelLoader
+        active: false
+        onActiveChanged: if (!active) root.activePanel = ""
+        onLoaded: {
+            item.closed.connect(() => {
+                root.activePanel = "" 
+            })
+        }
+        sourceComponent: Component {
+            AudioPanel {
+                themeFg:     root.themeFg
+                themeBg:     root.themeBg
+                themeRawBg:  root.themeRawBg
+                themeAccent: root.themeAccent
+                themeSecond: root.themeSecond
+            }
+        }
+    }
+
+    Loader {
+        id: wifiPanelLoader
+        active: false
+        onActiveChanged: if (!active) root.activePanel = ""
+        onLoaded: {
+            item.closed.connect(() => {
+                root.activePanel = ""  
+            })
+        }
+        sourceComponent: Component {
+            WifiPanel {
+                themeFg:     root.themeFg
+                themeBg:     root.themeBg
+                themeRawBg:  root.themeRawBg
+                themeAccent: root.themeAccent
+                themeSecond: root.themeSecond
+            }
+        }
+    }
+
+    Loader {
+        id: btPanelLoader
+        active: false
+        onActiveChanged: if (!active) root.activePanel = ""
+        onLoaded: {
+            item.closed.connect(() => {
+                root.activePanel = ""  
+            })
+        }
+        sourceComponent: Component {
+            BluetoothPanel {
+                themeFg:     root.themeFg
+                themeBg:     root.themeBg
+                themeRawBg:  root.themeRawBg
                 themeAccent: root.themeAccent
                 themeSecond: root.themeSecond
             }

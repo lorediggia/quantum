@@ -100,3 +100,11 @@ hl.layer_rule({
     no_anim = true,
 })
 
+hl.layer_rule({
+    name      = "panels-anim",
+    match     = { namespace = [[^quickshell-(audio|wifi|bluetooth)$]] },
+    blur         = true,
+    xray         = true,
+    ignore_alpha = 0.5,
+    animation = "slide top",
+})
