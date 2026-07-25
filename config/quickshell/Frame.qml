@@ -463,7 +463,7 @@ PanelWindow {
 
         MediaPill {
             anchors.right: statsRow.left
-            anchors.rightMargin: 12
+            anchors.rightMargin: statsRow.spacing
             anchors.verticalCenter: parent.verticalCenter
             height: 28
             activePlayer: frame.activePlayer
@@ -481,6 +481,12 @@ PanelWindow {
             anchors.rightMargin: 10
             spacing: 4
 
+            IconButton {
+                boxSize: 26; boxRadius: 8; iconSize: 12
+                icon: "󰈹"
+                tint: frame.themeAccent; baseFg: frame.themeFg
+                onActivated: frame.spawn(["zen-browser"])
+            }
             IconButton {
                 boxSize: 26; boxRadius: 8; iconSize: 12; valueSize: 10; hPadding: 12
                 icon: "󰍛"; value: frame.ramUsage
