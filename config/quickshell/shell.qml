@@ -17,8 +17,6 @@ ShellRoot {
     property bool isRestoring:  false
     property bool savePending:  false
 
-    property string batteryPercent: ""
-    property string batteryIcon:    "󰁹"
 
     property var allApps: []
 
@@ -85,7 +83,6 @@ ShellRoot {
 
     Component.onCompleted: {
         loadStickersProc.running = true
-        batProc.running = true
         loadAppsProc.running = true
     }
 
@@ -122,34 +119,7 @@ ShellRoot {
         }
     }
 
-    Process {
-        id: batProc
-        command: ["sh", "-c",
-            "for d in /sys/class/power_supply/BAT*; do" +
-            "  [ -f \"$d/capacity\" ] || continue;" +
-            "  echo \"$(cat $d/capacity)|$(cat $d/status 2>/dev/null)\";" +
-            "  exit;" +
-            "done;" +
-            "ac=$(cat /sys/class/power_supply/AC/online 2>/dev/null || echo 0);" +
-            "echo \"|AC|$ac\""
-        ]
-        property string buf: ""
-        stdout: SplitParser { onRead: (d) => batProc.buf += d }
-        onExited: {
-            const p = batProc.buf.trim().split("|")
-            batProc.buf = ""
-            const cap = parseInt(p[0])
-            if (!isNaN(cap)) {
-                root.batteryPercent = cap + "%"
-                root.batteryIcon    = cap > 90 ? "󰁹" : cap > 70 ? "󰂀" : cap > 40 ? "󰁾" : cap > 10 ? "󰁼" : "󰂎"
-                if ((p[1] ?? "").trim() === "Charging") root.batteryIcon = "󰂄"
-            } else if ((p[2] ?? "").trim() === "1") {
-                root.batteryIcon    = "󰚥"
-                root.batteryPercent = "AC"
-            }
-        }
-    }
-    Timer { interval: 60000; running: true; repeat: true; onTriggered: batProc.running = true }
+
 
     Process {
         id: loadAppsProc
@@ -298,8 +268,6 @@ ShellRoot {
                 themeSecond:    root.themeSecond
                 themeWarm:      root.themeWarm
                 themeFresh:     root.themeFresh
-                batteryPercent: root.batteryPercent
-                batteryIcon:    root.batteryIcon
                 buttonModel:    sidebarButtons
                 stickerModel:   stickerItems
 

@@ -171,7 +171,12 @@ PanelWindow {
     property string volumeIcon:    "󰕾"
     property string networkIcon:   "󰖪"
     property string bluetoothIcon: "󰂲"
-    property string activeAppName: ""
+    readonly property string activeAppName: {
+        const t = ToplevelManager.activeToplevel
+        if (!t) return ""
+        const c = (t.appId || "").trim()
+        return c === "" ? "" : c.charAt(0).toUpperCase() + c.slice(1)
+    }
 
     readonly property var mprisList:
         (typeof Mpris !== "undefined" && Mpris.players) ? Mpris.players.values : []
@@ -227,47 +232,56 @@ PanelWindow {
 
     Process { id: cmdProc; running: false }
 
-    Process {
-        id: activeWinProc
-        command: ["sh", "-c", "hyprctl activewindow -j | tr -d '\\n'"]
-        property string buf: ""
-        stdout: SplitParser { onRead: (d) => activeWinProc.buf += d }
-        onExited: {
-            const raw = activeWinProc.buf
-            activeWinProc.buf = ""
-            const m = raw.match(/"class"\s*:\s*"([^"]*)"/)
-            const cls = m ? m[1].trim() : ""
-            frame.activeAppName = cls === "" ? "" : cls.charAt(0).toUpperCase() + cls.slice(1)
+    FileView {
+        id: memFile
+        path: "/proc/meminfo"
+        onLoaded: {
+            const t = text()
+            const tot = /MemTotal:\s+(\d+)/.exec(t)
+            const av  = /MemAvailable:\s+(\d+)/.exec(t)
+            if (tot && av)
+                frame.ramUsage = ((parseInt(tot[1]) - parseInt(av[1])) / 1048576).toFixed(1) + "G"
         }
     }
-    Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true; onTriggered: activeWinProc.running = true }
+    Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: memFile.reload() }
 
     Process {
-        id: statsProc
+        id: fastProc
         command: ["sh", "-c",
-            "mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2; printf \"%.1fG\", (t-a)/1048576}' /proc/meminfo);" +
             "vol=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}');" +
             "net=$(nmcli -t -f STATE general 2>/dev/null | head -1);" +
-            "bt=$(timeout 1 bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}');" +
-            "bat=''; for b in /sys/class/power_supply/BAT*; do [ -d \"$b\" ] || continue; bat=\"$(cat $b/capacity 2>/dev/null):$(cat $b/status 2>/dev/null)\"; break; done;" +
-            "printf '%s|%s|%s|%s|%s\\n' \"$mem\" \"$vol\" \"$net\" \"$bt\" \"$bat\""
+            "printf '%s|%s\\n' \"$vol\" \"$net\""
         ]
         property string buffer: ""
-        stdout: SplitParser { onRead: (d) => statsProc.buffer += d }
+        stdout: SplitParser { onRead: (d) => fastProc.buffer += d }
         onExited: {
-            const p = statsProc.buffer.trim().split("|")
-            statsProc.buffer = ""
-            if (p.length < 1) return
-            if (p[0]) frame.ramUsage = p[0]
-            if (p[1]) {
-                frame.volumeLevel = p[1] + "%"
-                const v = parseInt(p[1])
+            const p = fastProc.buffer.trim().split("|")
+            fastProc.buffer = ""
+            if (p[0]) {
+                frame.volumeLevel = p[0] + "%"
+                const v = parseInt(p[0])
                 frame.volumeIcon = isNaN(v) || v <= 0 ? "󰝟" : v < 33 ? "󰕿" : v < 67 ? "󰖀" : "󰕾"
             }
-            if (p[2]) frame.networkIcon = p[2].trim() === "connected" ? "󰖩" : "󰖪"
-            if (p[3] !== undefined) frame.bluetoothIcon = p[3].trim() === "yes" ? "󰂯" : "󰂲"
-            if (p[4] !== undefined && p[4].trim() !== "" && p[4].indexOf(":") !== -1) {
-                const seg = p[4].trim().split(":")
+            if (p[1]) frame.networkIcon = p[1].trim() === "connected" ? "󰖩" : "󰖪"
+        }
+    }
+    Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: fastProc.running = true }
+
+    Process {
+        id: slowProc
+        command: ["sh", "-c",
+            "bt=$(timeout 1 bluetoothctl show 2>/dev/null | awk '/Powered:/{print $2; exit}');" +
+            "bat=''; for b in /sys/class/power_supply/BAT*; do [ -d \"$b\" ] || continue; bat=\"$(cat $b/capacity 2>/dev/null):$(cat $b/status 2>/dev/null)\"; break; done;" +
+            "printf '%s|%s\\n' \"$bt\" \"$bat\""
+        ]
+        property string buffer: ""
+        stdout: SplitParser { onRead: (d) => slowProc.buffer += d }
+        onExited: {
+            const p = slowProc.buffer.trim().split("|")
+            slowProc.buffer = ""
+            if (p[0] !== undefined) frame.bluetoothIcon = p[0].trim() === "yes" ? "󰂯" : "󰂲"
+            if (p[1] !== undefined && p[1].trim() !== "" && p[1].indexOf(":") !== -1) {
+                const seg = p[1].trim().split(":")
                 const cap = parseInt(seg[0])
                 const st  = (seg[1] || "").trim()
                 if (!isNaN(cap)) {
@@ -277,7 +291,7 @@ PanelWindow {
             } else frame.batteryPercent = ""
         }
     }
-    Timer { interval: 4000; running: true; repeat: true; triggeredOnStart: true; onTriggered: statsProc.running = true }
+    Timer { interval: 20000; running: true; repeat: true; triggeredOnStart: true; onTriggered: slowProc.running = true }
 
     mask: Region {
         x: 0; y: 0; width: frame.width; height: frame.topThickness

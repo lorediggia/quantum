@@ -10,12 +10,15 @@ Item {
 
     signal requestClose()
 
-    readonly property int pad:      16   
-    readonly property int cols:     3
-    readonly property int rows:     2   
-    readonly property int gap:      15
-    readonly property int thumbW:   220
-    readonly property int thumbH:   130
+    readonly property int pad:    16
+    readonly property int cols:   3
+    readonly property int rows:   2
+    readonly property int gap:    16
+    readonly property int thumbW: 220
+    readonly property int thumbH: 130
+
+    readonly property int cellW: thumbW + gap
+    readonly property int cellH: thumbH + gap
 
     implicitWidth:  pad * 2 + cols * thumbW + (cols - 1) * gap
     implicitHeight: pad * 2 + rows * thumbH + (rows - 1) * gap
@@ -56,75 +59,64 @@ Item {
         requestClose()
     }
 
-    Rectangle {
-        id: scrollMask
+    GridView {
         anchors.fill: parent
-        radius: 18
-        visible: false
-    }
-
-    Flickable {
-        anchors.fill: parent
-        anchors.margins: root.pad
+        anchors.margins: root.pad - root.gap / 2
         clip: true
 
-        contentWidth:  grid.implicitWidth
-        contentHeight: grid.implicitHeight
-        flickableDirection: Flickable.VerticalFlick
+        cellWidth:  root.cellW
+        cellHeight: root.cellH
+        model: wallModel
+
         boundsBehavior: Flickable.DragAndOvershootBounds
         flickDeceleration: 2500
         pixelAligned: true
+        cacheBuffer: root.cellH * 2
+        reuseItems: true
 
-        layer.enabled: true
-        layer.effect: OpacityMask { maskSource: scrollMask }
+        delegate: Item {
+            width:  root.cellW
+            height: root.cellH
 
-        Grid {
-            id: grid
-            columns: root.cols
-            spacing: root.gap
+            Item {
+                id: wrapper
+                anchors.centerIn: parent
+                width:  root.thumbW
+                height: root.thumbH
 
-            Repeater {
-                model: wallModel
+                scale: thumbMouse.pressed ? 0.96 : (thumbMouse.containsMouse ? 1.04 : 1.0)
+                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
-                Item {
-                    id: wrapper
-                    width:  root.thumbW
-                    height: root.thumbH
+                Image {
+                    id: wallImg
+                    anchors.fill: parent
+                    source: "file://" + path
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    cache: false
+                    sourceSize: Qt.size(root.thumbW, root.thumbH)
+                    visible: false
+                }
 
-                    scale: thumbMouse.pressed ? 0.96 : (thumbMouse.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                Rectangle {
+                    id: wallMask
+                    anchors.fill: parent
+                    radius: 14
+                    visible: false
+                }
 
-                    Image {
-                        id: wallImg
-                        anchors.fill: parent
-                        source: "file://" + path
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        cache: true
-                        sourceSize: Qt.size(root.thumbW * 2, root.thumbH * 2)
-                        visible: false
-                    }
+                OpacityMask {
+                    anchors.fill: parent
+                    source: wallImg
+                    maskSource: wallMask
+                }
 
-                    Rectangle {
-                        id: wallMask
-                        anchors.fill: parent
-                        radius: 14
-                        visible: false
-                    }
-
-                    OpacityMask {
-                        anchors.fill: parent
-                        source: wallImg
-                        maskSource: wallMask
-                    }
-
-                    MouseArea {
-                        id: thumbMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: applyWall(path)
-                    }
+                MouseArea {
+                    id: thumbMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: applyWall(path)
                 }
             }
         }
