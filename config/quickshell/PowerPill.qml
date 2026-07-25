@@ -10,19 +10,23 @@ Item {
     property color themeWarm
     property color themeFresh
 
+    property real size:      36
+    property real cornerRad: 11
+    property real glyphSize: 15
+
     signal poweroff()
     signal reboot()
     signal suspend()
 
-    implicitHeight: 36
-    implicitWidth: 36
+    implicitHeight: size
+    implicitWidth:  size
 
     property int idx: 0
     readonly property var glyphs: ["󰐥", "󰜉", "󰤄"]
 
     IconButton {
         anchors.centerIn: parent
-        boxSize: 36; boxRadius: 11; iconSize: 15
+        boxSize: root.size; boxRadius: root.cornerRad; iconSize: root.glyphSize
         icon: root.glyphs[root.idx]
         tint: themeAccent
         baseFg: themeFg

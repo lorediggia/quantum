@@ -20,7 +20,7 @@
     { "type": "cpu",    "key": " ╭─ 󰻠", "keyColor": "magenta", "format": "{1}" },
     { "type": "gpu",    "key": " ├─ 󰢮", "keyColor": "magenta", "format": "{1} {2}" },
     { "type": "memory", "key": " ╰─ 󰍛", "keyColor": "magenta", "format": "{1} / {2}" },
-    "break",
+    "break",S
     { "type": "colors", "symbol": "circle", "block": { "range": [1, 6] } }
   ]
 }

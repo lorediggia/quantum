@@ -64,28 +64,10 @@ hl.window_rule({
     no_blur = true,
 })
 
--- layer rules
 hl.layer_rule({
-    name         = "quickshell-glass",
-    match        = { namespace = [[^quickshell.*]] },
-    blur         = true,
-    ignore_alpha = 0.1,
-    xray         = true,
-})
-
-hl.layer_rule({
-    name         = "launcher-anim",
-    match        = { namespace = "quickshell-launcher" },
-    animation    = "slide top",
-})
-
-hl.layer_rule({
-    name         = "wallpicker-glass",
-    match        = { namespace = "wallpicker" },
-    blur         = true,
-    xray         = true,
-    ignore_alpha = 0.5,
-    animation    = "slide bottom",
+    name    = "quickshell-frame-no-anim",
+    match   = { namespace = "quickshell-frame" },
+    no_anim = true,
 })
 
 hl.layer_rule({
@@ -98,13 +80,4 @@ hl.layer_rule({
     name    = "disable-slurp-anim",
     match   = { namespace = "selection" },
     no_anim = true,
-})
-
-hl.layer_rule({
-    name      = "panels-anim",
-    match     = { namespace = [[^quickshell-(audio|wifi|bluetooth)$]] },
-    blur         = true,
-    xray         = true,
-    ignore_alpha = 0.5,
-    animation = "slide top",
 })

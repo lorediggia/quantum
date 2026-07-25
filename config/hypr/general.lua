@@ -5,7 +5,7 @@ if not ok or type(palette) ~= "table" then palette = {} end
 hl.config({
     general = {
         gaps_in     = 6,
-        gaps_out    = 14,
+        gaps_out    = { top = 44, right = 20, bottom = 20, left = 20 },
         border_size = 2,
 
         col = {

@@ -17,6 +17,7 @@ hl.bind(m .. " + L",                 hl.dsp.exec_cmd("hyprlock"))
 
 -- window
 hl.bind(m .. " + R",         hl.dsp.window.float())
+hl.bind(m .. " + F",         hl.dsp.window.fullscreen())
 
 -- mouse
 hl.bind(m .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
@@ -52,3 +53,4 @@ end
 
 hl.bind(m .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(m .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
+

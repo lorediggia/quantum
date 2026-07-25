@@ -25,12 +25,30 @@ Item {
     signal requestHide()
     signal requestPowerCycle()
 
+    function roleColor(role) {
+        switch (role) {
+            case "second": return themeSecond
+            case "warm":   return themeWarm
+            case "fresh":  return themeFresh
+            default:       return themeAccent
+        }
+    }
+
+    readonly property int  pad:        24   
+    readonly property int  sectionGap: 28  
+    readonly property int  clockSize:  62
+    readonly property int  artSize:    72
+    readonly property int  panelRad:   22
+
+    readonly property int  gridCols: 5
+    readonly property int  gridGap:  12
+    readonly property real gridBtn:
+        (width - pad * 2 - gridGap * (gridCols - 1)) / gridCols
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 28
-        spacing: 32
-
-        // header
+        anchors.margins: sidebarContentRoot.pad
+        spacing: sidebarContentRoot.sectionGap
 
         ColumnLayout {
             Layout.fillWidth: true
@@ -40,9 +58,13 @@ Item {
             Text {
                 id: clockT
                 Layout.alignment: Qt.AlignLeft
-                Layout.leftMargin: -6
+                Layout.leftMargin: -5
                 color: themeFg
-                font { family: "JetBrainsMono Nerd Font"; pixelSize: 72; weight: Font.ExtraLight }
+                font {
+                    family: "JetBrainsMono Nerd Font"
+                    pixelSize: sidebarContentRoot.clockSize
+                    weight: Font.ExtraLight
+                }
                 Component.onCompleted: text = Qt.formatTime(new Date(), "hh:mm")
                 Timer {
                     interval: 10000
@@ -54,31 +76,34 @@ Item {
             }
 
             RowLayout {
-                Layout.alignment: Qt.AlignLeft
-                spacing: 14
+                Layout.fillWidth: true
+                spacing: 10
 
                 Text {
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
                     text: Qt.formatDate(new Date(), "dddd, d MMMM").toUpperCase()
                     color: themeFg
                     opacity: 0.8
-                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: Font.Medium; letterSpacing: 0.2 }
+                    elide: Text.ElideRight
+                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 10; weight: Font.Medium; letterSpacing: 0.2 }
                 }
                 Text {
                     text: batteryIcon + " " + batteryPercent
                     color: themeFg
-                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; weight: Font.Bold }
+                    font { family: "JetBrainsMono Nerd Font"; pixelSize: 10; weight: Font.Bold }
                 }
+                Item { Layout.fillWidth: true }
             }
         }
 
-        // button grid
-
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 112
+            Layout.preferredHeight: sidebarContentRoot.gridBtn * 2 + sidebarContentRoot.gridGap
 
             Flickable {
                 anchors.fill: parent
+
                 anchors.margins: -10
                 clip: true
                 interactive: true
@@ -87,22 +112,25 @@ Item {
                 maximumFlickVelocity: 800
                 flickDeceleration: 2500
                 pixelAligned: true
-                contentWidth: buttonGrid.implicitWidth + 20
-                contentHeight: 132
+                contentWidth:  buttonGrid.implicitWidth + 20
+                contentHeight: buttonGrid.implicitHeight + 20
 
                 Grid {
                     id: buttonGrid
                     x: 10; y: 10
                     rows: 2
-                    spacing: 16
+                    spacing: sidebarContentRoot.gridGap
                     flow: Grid.TopToBottom
 
                     Repeater {
                         model: buttonModel
                         delegate: IconButton {
                             icon:   model.icon
-                            tint:   themeAccent
+                            tint:   sidebarContentRoot.roleColor(model.color_role)
                             baseFg: themeFg
+                            boxSize:   sidebarContentRoot.gridBtn
+                            boxRadius: sidebarContentRoot.gridBtn * 0.3
+                            iconSize:  16
                             onActivated: {
                                 switch (model.action) {
                                     case "sticker":       requestSticker(); break
@@ -119,15 +147,15 @@ Item {
             }
         }
 
-        // media player
+
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: playerLayout.implicitHeight + 40
+            Layout.preferredHeight: playerLayout.implicitHeight + 36
             visible: hasPlayer
 
             Theme {
                 anchors.fill: parent
-                radius: 24
+                radius: sidebarContentRoot.panelRad
                 style: "panel"
                 tintColor: themeAccent
                 panelSecond: themeSecond
@@ -136,19 +164,18 @@ Item {
             ColumnLayout {
                 id: playerLayout
                 anchors.fill: parent
-                anchors.margins: 20
-                spacing: 16
+                anchors.margins: 18
+                spacing: 14
 
-                // cover
+    
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 18
+                    spacing: 14
 
-                    // album art
                     Item {
                         id: artContainer
-                        width: 85
-                        height: 85
+                        width:  sidebarContentRoot.artSize
+                        height: sidebarContentRoot.artSize
 
                         Item {
                             id: maskedArt
@@ -158,7 +185,7 @@ Item {
                                 maskSource: Rectangle {
                                     width:  maskedArt.width
                                     height: maskedArt.height
-                                    radius: 24
+                                    radius: sidebarContentRoot.artSize * 0.28
                                 }
                             }
 
@@ -178,7 +205,7 @@ Item {
                                 anchors.fill: parent
                                 fillMode: Image.PreserveAspectCrop
                                 smooth: true; cache: true; asynchronous: true
-                                sourceSize: Qt.size(170, 170)
+                                sourceSize: Qt.size(150, 150)
                             }
 
                             Image {
@@ -186,7 +213,7 @@ Item {
                                 anchors.fill: parent
                                 fillMode: Image.PreserveAspectCrop
                                 smooth: true; cache: true; asynchronous: true
-                                sourceSize: Qt.size(170, 170)
+                                sourceSize: Qt.size(150, 150)
                                 opacity: 0
 
                                 onStatusChanged: {
@@ -212,16 +239,15 @@ Item {
                         }
                     }
 
-                    // title
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 5
+                        spacing: 4
                         clip: true
 
                         Text {
-                            text: activePlayer?.trackTitle  ?? "Now playing"
+                            text: activePlayer?.trackTitle ?? "Now playing"
                             color: themeFg
-                            font { family: "JetBrainsMono Nerd Font"; pixelSize: 17; weight: Font.Medium; letterSpacing: 0.2 }
+                            font { family: "JetBrainsMono Nerd Font"; pixelSize: 15; weight: Font.Medium; letterSpacing: 0.2 }
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
@@ -229,45 +255,43 @@ Item {
                             text: activePlayer?.trackArtist ?? "Unknown artist"
                             color: themeSecond
                             opacity: 0.65
-                            font { family: "JetBrainsMono Nerd Font"; pixelSize: 12; letterSpacing: 0.3 }
+                            font { family: "JetBrainsMono Nerd Font"; pixelSize: 11; letterSpacing: 0.3 }
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
                     }
                 }
 
-                // progress bar
                 SeekBar {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 24
+                    Layout.preferredHeight: 22
                     player:  activePlayer
                     playing: sidebarContentRoot.isPlaying && sidebarContentRoot.visible
                     fg:      themeFg
                     accent:  themeAccent
                     trackHeight: 4
-                    thumbSize:   11
-                    haloSize:    22
+                    thumbSize:   10
+                    haloSize:    20
                     updateInterval: 500
                 }
 
-                // playback
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
-                    spacing: 22
+                    spacing: 18
 
                     IconButton {
-                        icon: "󰒮"; boxSize: 44; boxRadius: 14; iconSize: 20
+                        icon: "󰒮"; boxSize: 38; boxRadius: 12; iconSize: 18
                         tint: themeAccent; baseFg: themeFg
                         onActivated: activePlayer?.previous()
                     }
                     IconButton {
-                        boxSize: 56; boxRadius: 16; iconSize: 22
+                        boxSize: 48; boxRadius: 14; iconSize: 20
                         tint: themeAccent; baseFg: themeFg
                         icon: sidebarContentRoot.isPlaying ? "󰏤" : "󰐊"
                         onActivated: activePlayer?.togglePlaying()
                     }
                     IconButton {
-                        icon: "󰒭"; boxSize: 44; boxRadius: 14; iconSize: 20
+                        icon: "󰒭"; boxSize: 38; boxRadius: 12; iconSize: 18
                         tint: themeAccent; baseFg: themeFg
                         onActivated: activePlayer?.next()
                     }
