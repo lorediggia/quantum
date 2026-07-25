@@ -11,7 +11,6 @@ hl.bind(m .. " + W",                 hl.dsp.exec_cmd("quickshell ipc call wall_e
 hl.bind(m .. " + X",                 hl.dsp.exec_cmd("sidebar"))
 hl.bind(m .. " + S",                 hl.dsp.exec_cmd([[sh -c 'GEOM=$(slurp -b 00000044 -c ffffff -w 2) && grim -t png -g "$GEOM" - | wl-copy']]))
 hl.bind(m .. " + F",                 hl.dsp.exec_cmd("sh -c 'grim - | wl-copy'"))
-hl.bind(m .. " + Z",                 hl.dsp.exec_cmd("topbar"))
 hl.bind(m .. " + G",                 hl.dsp.exec_cmd([[sh -c 'grim "$HOME/Pictures/$(date +%Y%m%d-%H%M%S).png"']]))
 hl.bind(m .. " + L",                 hl.dsp.exec_cmd("hyprlock"))
 

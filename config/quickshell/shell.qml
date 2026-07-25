@@ -240,9 +240,17 @@ ShellRoot {
         ListElement { icon: "󰏘"; color_role: "accent"; action: "cmd";           cmd0: "picker";          cmd1: "" }
         ListElement { icon: "󰌾"; color_role: "accent"; action: "cmd";           cmd0: "hyprlock";        cmd1: "" }
         ListElement { icon: "󰐥"; color_role: "accent"; action: "cmd";           cmd0: "systemctl";       cmd1: "poweroff" }
+        ListElement { icon: "󰤄"; color_role: "warm";   action: "cmd";           cmd0: "systemctl";       cmd1: "suspend" }
+        ListElement { icon: "󰜉"; color_role: "warm";   action: "cmd";           cmd0: "systemctl";       cmd1: "reboot" }
+        ListElement { icon: "󰍃"; color_role: "warm";   action: "cmd";           cmd0: "hyprctl";         cmd1: "dispatch exit" }
         ListElement { icon: "󰗑"; color_role: "warm";   action: "power_profile"; cmd0: "";                cmd1: "" }
         ListElement { icon: "󰄨"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "btop" }
         ListElement { icon: "󰕾"; color_role: "accent"; action: "cmd";           cmd0: "pavucontrol";     cmd1: "" }
+        ListElement { icon: "󰆓"; color_role: "second"; action: "cmd";           cmd0: "nautilus";        cmd1: "" }
+        ListElement { icon: "󰆍"; color_role: "second"; action: "cmd";           cmd0: "kitty";           cmd1: "" }
+        ListElement { icon: "󰄀"; color_role: "fresh";  action: "cmd";           cmd0: "sh";              cmd1: "-c 'grim - | wl-copy'" }
+        ListElement { icon: "󰕧"; color_role: "fresh";  action: "cmd";           cmd0: "sh";              cmd1: "-c 'grim \"$HOME/Pictures/$(date +%Y%m%d-%H%M%S).png\"'" }
+        ListElement { icon: "󰈹"; color_role: "second"; action: "cmd";           cmd0: "zen-browser";     cmd1: "" }
     }
 
     ListModel { id: stickerItems }

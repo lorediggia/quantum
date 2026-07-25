@@ -28,23 +28,23 @@ PanelWindow {
     }
 
     component BaseFillet: Canvas {
-        property real  f:      frame.filletRad      
-        property real  r:      frame.hyprRounding  
-        property real  extent: 0               
+        property real  f:      frame.filletRad
+        property real  r:      frame.hyprRounding
+        property real  extent: 0
         property color fill:   frame.barColor
 
         property string mode: "top"
 
         readonly property bool vertical: mode === "right" || mode === "right-mirror"
-        readonly property real along: f + r + 2  
-        readonly property real deep:  f + 2   
+        readonly property real along: f + r + 2
+        readonly property real deep:  f + 2
 
         width:  vertical ? deep  : along
         height: vertical ? along : deep
 
         function shape(ctx, f, r, V) {
-            const ccx = f + r, ccy = V - r         
-            const onArc = V < r + f              
+            const ccx = f + r, ccy = V - r
+            const onArc = V < r + f
             const cx = onArc
                 ? f + r - Math.sqrt(Math.max(0, V * (2 * r + 2 * f - V)))
                 : 0
@@ -53,6 +53,7 @@ PanelWindow {
             ctx.moveTo(cx, 0)
 
             if (onArc) {
+
                 const ang = Math.atan2(ccy - f, ccx - cx)
                 ctx.arc(cx, f, f, -Math.PI / 2, ang, false)
                 if (V >= r) {
@@ -63,6 +64,7 @@ PanelWindow {
                     ctx.arc(ccx, ccy, r, ang + Math.PI, Math.atan2(-ccy, -sx), false)
                 }
             } else {
+
                 ctx.arc(cx, f, f, -Math.PI / 2, 0, false)
                 ctx.lineTo(f, 0)
             }
@@ -77,6 +79,7 @@ PanelWindow {
 
             const W = width, H = height
             ctx.save()
+
             if (mode === "top-mirror")         { ctx.translate(W, 0); ctx.scale(-1, 1) }
             else if (mode === "bottom")        { ctx.translate(0, H); ctx.scale(1, -1) }
             else if (mode === "bottom-mirror") { ctx.translate(W, H); ctx.scale(-1, -1) }
@@ -116,6 +119,7 @@ PanelWindow {
     signal requestStickerSave()
     signal requestStickerDestroy(int idx)
     signal requestStickerZBump(int idx)
+
     signal requestStickerSize(string path, real scale)
 
     readonly property int topThickness:    34
@@ -126,6 +130,7 @@ PanelWindow {
     readonly property int filletRad:    18
     readonly property real panelInset:  30
 
+    readonly property real sidebarVInset: 130
 
     readonly property real  barAlpha: 1.0
     readonly property color barColor: Qt.rgba(themeRawBg.r, themeRawBg.g, themeRawBg.b, barAlpha)
@@ -321,19 +326,19 @@ PanelWindow {
         color: frame.barColor
     }
 
-    InnerCorner {  
+    InnerCorner {
         x: frame.sideThickness; y: frame.topThickness
     }
-    InnerCorner { 
+    InnerCorner {
         x: frame.width - frame.sideThickness - width; y: frame.topThickness
         rotation: 90
     }
-    InnerCorner { 
+    InnerCorner {
         x: frame.width - frame.sideThickness - width
         y: frame.height - frame.bottomThickness - height
         rotation: 180
     }
-    InnerCorner {  
+    InnerCorner {
         x: frame.sideThickness
         y: frame.height - frame.bottomThickness - height
         rotation: 270
@@ -855,9 +860,9 @@ PanelWindow {
         id: sidebarArea
         x: frame.width - width
 
-        y: frame.topThickness + frame.panelInset
+        y: frame.topThickness + frame.sidebarVInset
         height: frame.height - frame.topThickness - frame.bottomThickness
-                - frame.panelInset * 2
+                - frame.sidebarVInset * 2
         clip: true
 
         property real p: frame.sidebarOpen ? 1 : 0
