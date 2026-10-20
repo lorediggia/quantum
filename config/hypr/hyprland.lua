@@ -1,15 +1,11 @@
-local home = os.getenv("HOME")
+local env = require("env")
+require("look")
+require("rules")
+require("binds")
+require("autostart")
 
-require("env")
-require("variables")
-require("general")
-require("decoration")
-require("animations")
-require("keybinds")
-require("windowrules")
-require("startup")
-
-local function load_if(p) pcall(dofile, p) end
-
-load_if(home .. "/dotfiles/local/hypr-local.lua")
-load_if(home .. "/dotfiles/local/user-keybinds.lua")
+local overrides = io.open(env.dotfiles .. "/local/hypr-local.lua")
+if overrides then
+    overrides:close()
+    dofile(env.dotfiles .. "/local/hypr-local.lua")
+end

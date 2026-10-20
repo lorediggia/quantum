@@ -1,8 +1,14 @@
-foreground           {{foreground}}
-background           {{background}}
-cursor               {{cursor}}
-selection_background {{foreground}}
-selection_foreground {{background}}
+foreground              {{foreground}}
+background              {{background}}
+cursor                  {{color4}}
+cursor_text_color       {{background}}
+selection_background    {{color8}}
+selection_foreground    {{foreground}}
+url_color               {{color4}}
+active_tab_background   {{color4}}
+active_tab_foreground   {{background}}
+inactive_tab_background {{background}}
+inactive_tab_foreground {{color8}}
 
 color0  {{color0}}
 color1  {{color1}}

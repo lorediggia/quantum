@@ -1,0 +1,5 @@
+yay-bin
+grimblast-git
+bibata-cursor-theme-bin
+whitesur-gtk-theme
+whitesur-icon-theme

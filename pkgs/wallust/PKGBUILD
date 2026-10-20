@@ -1,0 +1,32 @@
+pkgname=wallust
+pkgver=3.5.2
+pkgrel=1
+pkgdesc="Generate colors from an image"
+arch=('x86_64')
+url="https://codeberg.org/explosion-mental/wallust"
+license=('MIT')
+depends=('libgcc')
+makedepends=('cargo' 'git')
+optdepends=('imagemagick: more image backends')
+conflicts=('wallust-git')
+options=('!lto')
+source=("$pkgname::git+$url.git#tag=$pkgver")
+sha256sums=('SKIP')
+
+prepare() {
+    export CARGO_HOME="$srcdir/cargo-home" RUSTUP_TOOLCHAIN=stable
+    cd "$pkgname"
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/^host: //p')"
+}
+
+build() {
+    export CARGO_HOME="$srcdir/cargo-home" RUSTUP_TOOLCHAIN=stable
+    cd "$pkgname"
+    cargo build --frozen --release
+}
+
+package() {
+    cd "$pkgname"
+    install -Dm755 target/release/wallust -t "$pkgdir/usr/bin"
+    install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname"
+}

@@ -1,0 +1,6 @@
+mkinitcpio-archiso
+arch-install-scripts
+gptfdisk
+dosfstools
+intel-ucode
+amd-ucode

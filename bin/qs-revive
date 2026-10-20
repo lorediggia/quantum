@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+pkill -x quickshell; sleep 5
+for _ in 1 2; do
+    setsid -f quickshell >/dev/null 2>&1; sleep 3
+    log=$(ls -t "$XDG_RUNTIME_DIR"/quickshell/by-id/*/log.qslog 2>/dev/null | head -1)
+    [[ -n $log ]] && grep -q "no outputs" "$log" || exit 0
+    pkill -x quickshell; sleep 1
+done

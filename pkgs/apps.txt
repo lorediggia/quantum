@@ -1,0 +1,4 @@
+helium-browser-bin
+vscodium-bin
+localsend-bin
+noto-fonts-cjk

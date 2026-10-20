@@ -1,22 +1,9 @@
 #!/usr/bin/env bash
-STATE=$(hyprctl -j getoption animations:enabled | jq -r '.bool')
-
-if [ "$STATE" = "true" ]; then
+if [[ $(hyprctl -j getoption animations.enabled | jq -r .bool) == true ]]; then
     hyprctl eval 'hl.config({
         animations = { enabled = false },
-        decoration = {
-            dim_inactive = false,
-            active_opacity = 1.0,
-            inactive_opacity = 1.0,
-            rounding = 0,
-            blur = { enabled = false },
-            shadow = { enabled = false }
-        },
-        general = {
-            gaps_in = 0,
-            gaps_out = 0,
-            border_size = 1
-        }
+        decoration = { rounding = 0, blur = { enabled = false } },
+        general    = { gaps_in = 0, gaps_out = 0 },
     })'
 else
     hyprctl reload

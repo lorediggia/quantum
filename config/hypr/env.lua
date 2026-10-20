@@ -1,20 +1,35 @@
--- core
-hl.env("PATH",                                os.getenv("HOME") .. "/.local/bin:" .. (os.getenv("PATH") or ""))
-hl.env("XDG_SESSION_TYPE",                    "wayland")
-hl.env("XDG_CURRENT_DESKTOP",                 "Hyprland")
-hl.env("XDG_SESSION_DESKTOP",                 "Hyprland")
+local home = os.getenv("HOME")
 
--- wayland
-hl.env("ELECTRON_OZONE_PLATFORM_HINT",        "wayland")
-hl.env("MOZ_ENABLE_WAYLAND",                  "1")
-hl.env("QT_QPA_PLATFORM",                     "wayland;xcb")
-hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
-hl.env("SDL_VIDEODRIVER",                     "wayland")
+local function repo()
+    local link = io.popen('readlink -f "$HOME/.config/hypr"')
+    local path = link:read("l")
+    link:close()
+    return path and path:match("^(.*)/config/hypr$")
+end
 
--- scaling + cursors
-hl.env("GDK_SCALE",        "1")
-hl.env("QT_SCALE_FACTOR",  "1")
-hl.env("XCURSOR_SIZE",     "24")
-hl.env("HYPRCURSOR_SIZE",  "24")
-hl.env("XCURSOR_THEME",    "Bibata-Modern-Classic")
-hl.env("HYPRCURSOR_THEME", "Bibata-Modern-Classic")
+local M = {
+    dotfiles = os.getenv("DOTFILES") or repo() or home .. "/dotfiles",
+    mod      = "SUPER",
+    terminal = "kitty",
+    files    = "nautilus",
+    browser  = "helium-browser",
+}
+local cursor = "Bibata-Modern-Classic"
+
+for name, value in pairs({
+    DOTFILES                            = M.dotfiles,
+    PATH                                = M.dotfiles .. "/bin:" .. home .. "/.local/bin:" .. os.getenv("PATH"),
+    XDG_SESSION_DESKTOP                 = "Hyprland",
+    ELECTRON_OZONE_PLATFORM_HINT        = "wayland",
+    SDL_VIDEODRIVER                     = "wayland",
+    QT_QPA_PLATFORM                     = "wayland;xcb",
+    QT_QPA_PLATFORMTHEME                = "qt6ct",
+    QT_WAYLAND_DISABLE_WINDOWDECORATION = "1",
+    QS_ICON_THEME                       = "WhiteSur-dark",
+    XCURSOR_THEME                       = cursor,
+    HYPRCURSOR_THEME                    = cursor,
+    XCURSOR_SIZE                        = "24",
+    HYPRCURSOR_SIZE                     = "24",
+}) do hl.env(name, value) end
+
+return M

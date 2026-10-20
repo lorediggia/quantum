@@ -1,0 +1,7 @@
+base
+linux
+linux-firmware
+sof-firmware
+sudo
+networkmanager
+zram-generator

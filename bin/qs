@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-exec quickshell ipc call "$(basename "$0")" "${1:-toggle}" "[]"

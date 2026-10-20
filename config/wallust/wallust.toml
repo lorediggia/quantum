@@ -1,24 +1,8 @@
-backend = "wal"
-color_space = "lab"
-threshold = 17
+backend     = "wal"
+color_space = "lch"
+threshold   = 0
 
-[templates.quickshell-json]
-template = "colors.json.template"
-target = "~/.cache/wal/colors.json"
-
-[templates.hyprland]
-template = "colors-hyprland.lua.template"
-target = "~/.cache/wal/colors-hyprland.lua"
-
-[templates.kitty]
-template = "colors-kitty.conf.template"
-target = "~/.cache/wal/colors-kitty.conf"
-
-[templates.hyprlock]
-template = "colors-hyprlock.conf.template"
-target = "~/.cache/wal/colors-hyprlock.conf"
-
-[templates.json]
-template = "colors.json.template"
-target = "~/.cache/wal/colors.json"
-
+[templates]
+quickshell = { template = "colors.json.template",          target = "~/.cache/wal/colors.json" }
+kitty      = { template = "colors-kitty.conf.template",    target = "~/.cache/wal/colors-kitty.conf" }
+hyprlock   = { template = "colors-hyprlock.conf.template", target = "~/.cache/wal/colors-hyprlock.conf" }

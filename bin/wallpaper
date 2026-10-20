@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state=~/.cache/wal/wallpaper
+img=${1:-}
+fade=${2:-1.5}
+
+if [[ -z $img ]]; then
+    img=$(cat "$state" 2>/dev/null || true)
+    [[ -f $img ]] || img=$({ find -L ~/pictures/wal -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) 2>/dev/null || true; } | sort | sed -n 1p)
+    [[ -f $img ]] || exit 0
+    fade=0
+fi
+
+for _ in {1..50}; do awww query &>/dev/null && break; sleep 0.1; done
+awww img "$img" --transition-type "$([[ $fade == 0 ]] && echo none || echo fade)" --transition-duration "$fade"
+[[ -f $state && $(<"$state") == "$img" && -e ~/.cache/wal/colors.json ]] && exit 0
+
+mkdir -p "${state%/*}"
+printf '%s' "$img" > "$state"
+wallust run -q "$img"
+pkill -USR1 -x kitty || true
