@@ -6,7 +6,6 @@ Notch {
     id: host
     required property var names
     property string last: ""
-    property bool dismiss: true
     Connections { target: Ui; function onOpenChanged() { if (host.names.includes(Ui.open)) host.last = Ui.open } }
     readonly property Item current: {
         for (let i = 0; i < stack.count; i++) if (stack.itemAt(i)?.shown) return stack.itemAt(i).item
@@ -17,7 +16,6 @@ Notch {
     bodyW: current?.implicitWidth ?? 0
     bodyH: current?.implicitHeight ?? 0
 
-    MouseArea { anchors.fill: parent; z: 1; enabled: host.dismiss; acceptedButtons: Qt.RightButton; onClicked: Ui.close() }
     Repeater {
         id: stack
         model: host.names

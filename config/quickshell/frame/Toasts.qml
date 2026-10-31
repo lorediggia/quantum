@@ -30,7 +30,9 @@ ListView {
         height: 66
         radius: 0
         clip: true
+        opacity: 1 - Math.abs(x) / width
         onClicked: Notifs.activate(nid)
+        Swipe { onGone: Notifs.dismiss(toast.nid) }
 
         RowLayout {
             anchors { fill: parent; leftMargin: 14; rightMargin: 12; topMargin: 11; bottomMargin: 11 }

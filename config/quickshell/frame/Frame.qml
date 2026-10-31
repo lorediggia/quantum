@@ -26,6 +26,7 @@ PanelWindow {
         Region { y: frame.height - frame.edge; width: frame.width; height: frame.edge }
         Region { width: frame.edge; height: frame.height }
         Region { x: frame.width - frame.edge; width: frame.edge; height: frame.height }
+        Region { item: catcher }
         Region { item: panels }
         Region { item: status }
         Region { item: wallpapers }
@@ -55,6 +56,13 @@ PanelWindow {
         }
     }
 
+    MouseArea {
+        id: catcher
+        width: Ui.open && Ui.open !== "pin" ? frame.width : 0
+        height: frame.height
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: Ui.close()
+    }
     Bar { id: bar; width: frame.width; height: frame.barH }
 
     Panels {
@@ -94,7 +102,6 @@ PanelWindow {
         id: overview
         edge: "left"
         names: ["overview"]
-        dismiss: false
         bodyW: Cfg.look.drawerW
         bodyH: frame.drawerH
         x: frame.edge
@@ -104,7 +111,6 @@ PanelWindow {
         id: sidebar
         edge: "right"
         names: ["sidebar", "settings"]
-        dismiss: false
         bodyW: Cfg.look.drawerW
         bodyH: frame.drawerH
         x: frame.width - frame.edge - width

@@ -60,6 +60,7 @@ Singleton {
         n?.dismiss()
         untoast(id)
     }
+    function dismiss(id) { list.find(n => n.id === id)?.dismiss(); untoast(id) }
     function clear() { for (const n of [...list]) n.dismiss(); toasts.clear() }
     function toggleDnd() { Cfg.dnd = !Cfg.dnd; if (Cfg.dnd) toasts.clear() }
 }

@@ -42,7 +42,7 @@ Panel {
             required property var modelData
             width: ListView.view.width
             icon: Net.bars(modelData)
-            title: modelData.name + (Net.secured(modelData) ? "  󰌾" : "")
+            title: modelData.name
             subtitle: modelData.connected ? "connected" : modelData.known ? "saved" : ""
             active: modelData.connected
             busy: modelData.stateChanging

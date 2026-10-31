@@ -23,7 +23,9 @@ Panel {
             width: ListView.view.width
             height: 64
             color: hovered ? Theme.fgA(0.04) : "transparent"
+            opacity: 1 - Math.abs(x) / width
             onClicked: Notifs.activate(modelData.id)
+            Swipe { onGone: row.modelData.dismiss() }
 
             RowLayout {
                 anchors { fill: parent; leftMargin: 8; rightMargin: 4 }

@@ -103,7 +103,7 @@ Item {
                             DragHandler {
                                 id: dh
                                 yAxis.enabled: false
-                                xAxis { minimum: 0; maximum: order.width - 28 }
+                                xAxis { minimum: 0; maximum: (order.on.length - 1) * order.step }
                                 onActiveChanged: {
                                     if (active) return order.from = order.to = parent.index
                                     const a = order.on.slice()
